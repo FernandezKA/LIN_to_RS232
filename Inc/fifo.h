@@ -1,5 +1,4 @@
-#ifndef _fifo_h_
-#define _fifo_h_
+#pragma once
 #include "main.h"
 
 //User defines
@@ -24,4 +23,3 @@ BufDataType Pull(FIFO *buf);
 uint16_t GetSize(FIFO *buf);
 
 void Clear(FIFO *buf);
-#endif
