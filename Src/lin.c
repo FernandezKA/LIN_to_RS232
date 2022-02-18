@@ -5,6 +5,10 @@ bool GetLinPacket(uint8_t data, lin* packet){
 	bool status = false;
 	
 	switch(packet->state){
+		case wait_break:
+			
+		break;
+		
 		case wait_pid:
 		packet->PID = data;
 		packet->state = wait_data;
