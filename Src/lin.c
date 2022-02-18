@@ -1,4 +1,4 @@
-#include "main.c"
+#include "main.h"
 #include "lin.h"
 
 bool GetLinPacket(uint8_t data, lin* packet){
@@ -39,3 +39,29 @@ void LinClear(lin* packet){
 	packet->rcrc = 0;
 	packet->countData = 0;
 }
+
+void LinSend(lin* packet, bool isMaster){
+	if(isMaster){
+	 while((USART_STAT(USART_LIN) & USART_STAT_TBE) == USART_STAT_TBE) {__NOP();}
+	 usart_data_transmit(USART_LIN, 0x55U);
+	 while((USART_STAT(USART_LIN) & USART_STAT_TBE) == USART_STAT_TBE) {__NOP();}
+	 usart_data_transmit(USART_LIN, packet->PID);
+	 while((USART_STAT(USART_LIN) & USART_STAT_TBE) == USART_STAT_TBE) {__NOP();}
+	 for(uint16_t i = 0; i  < packet->size; ++i){
+	 while((USART_STAT(USART_LIN) & USART_STAT_TBE) == USART_STAT_TBE) {__NOP();}
+	 usart_data_transmit(USART_LIN, packet->data[i]);
+	 }
+	 while((USART_STAT(USART_LIN) & USART_STAT_TBE) == USART_STAT_TBE) {__NOP();}
+	 if(packet->crc == packet -> rcrc){
+		usart_data_transmit(USART_LIN, packet->crc);
+	 }
+	 else{
+		usart_data_transmit(USART_LIN, packet->rcrc);
+	 }
+ }
+	else{
+		lin_slave = *packet;
+		waitLinSlave = TRUE;
+	}
+}
+

@@ -6,6 +6,8 @@ struct fifo LIN_TX;
 struct fifo RS232_RX;
 struct fifo RS232_TX;
 
+bool waitLinSlave = FALSE;
+lin lin_slave;
 
 static inline void SysInit(void);
 
@@ -20,21 +22,21 @@ SysInit();
 	
 	if(GetSize(&LIN_TX) != 0){
 		//Enable IRQ
+		
 	}
 		//Parse RS232 fifo
 	if(GetSize(&RS232_RX) != 0){     //All fields for lin packet recieved
-		if(GetLinPacket(Pull(&RS232_RX), &lin_transmit)){
-			
-		}
-		else{   //Wait new field for LIN pa
-			
-		}
+//		if(GetLinPacket(Pull(&RS232_RX), &lin_transmit)){
+//			
+//		}
+//		else{   //Wait new field for LIN pa
+//			
+//		}
 	}
 		
 	if(GetSize(&RS232_TX) != 0){
 		//Enable IRQ
-	}
-	
+	}	
 	}
 }
 
@@ -45,3 +47,4 @@ static inline void SysInit(void){
 	USART1_Init();
 	TIM0_Init();
 }
+
