@@ -1,13 +1,15 @@
 #include "main.h"
 #include <gd32f10x_usart.h>
-void CLK_Init(void){}
-	
-void GPIO_Init(void){
+void CLK_Init(void) {}
+
+void GPIO_Init(void)
+{
 	RCU_APB2EN |= RCU_APB2EN_PCEN;
 	gpio_init(GPIOC, GPIO_MODE_OUT_OD, GPIO_OSPEED_10MHZ, GPIO_PIN_13); // It's led for indicate activity
 }
-//This uart used for RS232 communicate
-void USART0_Init(void){
+// This uart used for RS232 communicate
+void USART0_Init(void)
+{
 	RCU_APB2EN |= RCU_APB2EN_USART0EN;
 	RCU_APB2EN |= RCU_APB2EN_PAEN;
 	usart_deinit(USART0);
@@ -22,8 +24,9 @@ void USART0_Init(void){
 	gpio_init(GPIOA, GPIO_MODE_IPD, GPIO_OSPEED_50MHZ, GPIO_PIN_10);
 	usart_enable(USART0);
 }
-//This uart used for LIN communication
-void USART1_Init(void){
+// This uart used for LIN communication
+void USART1_Init(void)
+{
 	RCU_APB1EN |= RCU_APB1EN_USART1EN;
 	RCU_APB2EN |= RCU_APB2EN_PAEN;
 	usart_deinit(USART1);
@@ -32,24 +35,26 @@ void USART1_Init(void){
 	usart_transmit_config(USART1, USART_TRANSMIT_ENABLE);
 	usart_receive_config(USART1, USART_RECEIVE_ENABLE);
 	usart_interrupt_enable(USART1, USART_INT_RBNE);
-	//This part of cide untested into hardware
+	usart_interrupt_enable(USART1, USART_INT_LBD); // Lin break detect
+	// This part of cide untested into hardware
 	usart_lin_mode_enable(USART1);
 	usart_interrupt_enable(USART1, USART_INT_LBD);
-	//End of untested code
+	// End of untested code
 	gpio_afio_deinit();
 	gpio_init(GPIOA, GPIO_MODE_AF_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_2);
 	gpio_init(GPIOA, GPIO_MODE_IPD, GPIO_OSPEED_50MHZ, GPIO_PIN_3);
 	usart_enable(USART1);
 }
-//This timer used for led indicating
-void TIM0_Init(void){
+// This timer used for led indicating
+void TIM0_Init(void)
+{
 	RCU_APB2EN |= RCU_APB2EN_TIMER0EN;
 	timer_deinit(TIMER0);
 	timer_parameter_struct tim0;
-	tim0.prescaler = 1070; // 0.01 mS for each step
+	tim0.prescaler = 0xFFFF; // 0.01 mS for each step
 	tim0.alignedmode = TIMER_COUNTER_EDGE;
 	tim0.counterdirection = TIMER_COUNTER_UP;
-	tim0.period = 100000; // About 0.81 sec per UIF IRQ
+	tim0.period = 0xFFFFFFFF; // About 0.81 sec per UIF IRQ
 	timer_init(TIMER0, &tim0);
 	timer_interrupt_enable(TIMER0, TIMER_INT_UP); // Interrrupt at overflow
 	timer_enable(TIMER0);

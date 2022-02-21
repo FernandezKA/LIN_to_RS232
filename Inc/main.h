@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 
-//GD Includes
+// GD Includes
 #include <gd32f10x.h>
 #include <gd32f10x_rcu.h>
 #include <gd32f10x_usart.h>
@@ -10,23 +10,22 @@
 #include <gd32f10x_misc.h>
 #include <gd32f10x_usart.h>
 
-//User includes
+// User includes
 #include "fifo.h"
 
-//User global variables
+// User global variables
 extern struct fifo LIN_RX;
 extern struct fifo LIN_TX;
 extern struct fifo RS232_RX;
 extern struct fifo RS232_TX;
 
+extern uint32_t SysCounter;
 
-//User definitions
+// User definitions
 
-//User function definition
+// User function definition
 void CLK_Init(void);
 void GPIO_Init(void);
 void USART0_Init(void);
 void USART1_Init(void);
 void TIM0_Init(void);
-
-

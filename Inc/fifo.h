@@ -1,9 +1,9 @@
 #pragma once
 #include "main.h"
 
-//User defines
+// User defines
 #define BufDataType uint8_t
-#define BufSize 	  0x40U
+#define BufSize 0x40U
 
 struct fifo
 {

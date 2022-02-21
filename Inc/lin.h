@@ -6,15 +6,16 @@
 #define USART_RS232 USART0
 #define USART_LIN USART1
 
-enum lin_state{
-	wait_break,
+enum lin_state
+{
 	wait_pid,
 	wait_data,
 	wait_crc,
 	completed
 };
 
-struct LIN{
+struct LIN
+{
 	uint8_t PID;
 	uint8_t data[8U];
 	uint8_t crc;
@@ -31,11 +32,12 @@ extern lin lin_transmit;
 extern lin lin_slave;
 extern bool waitLinSlave;
 
-void LinClear(lin* packet);
+void LinClear(lin *packet);
 
-bool GetLinPacket(uint8_t data, lin* packet);
+bool GetLinPacket(uint8_t data, lin *packet);
 
-void LinSend(lin* packet, bool isMaster);
+void LinSend(lin *packet, bool isMaster);
 
-uint8_t GetCRC(lin* packet, bool isEnhanced);
+uint8_t GetCRC(lin *packet, bool isEnhanced);
 
+uint8_t GetLinSize(lin *packet);

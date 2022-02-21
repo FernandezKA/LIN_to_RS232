@@ -24,3 +24,5 @@ RTE/Device/GD32F103C8/gd32f10x_timer.c
 RTE/Device/GD32F103C8/startup_gd32f10x_hd.s
 RTE/Device/GD32F103C8/system_gd32f10x.c
 *.hex
+Objects/ExtDll.iex
+EventRecorderStub.scvd
