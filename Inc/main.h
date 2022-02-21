@@ -21,6 +21,8 @@ extern struct fifo RS232_TX;
 
 extern uint32_t SysCounter;
 
+extern uint16_t BAUDRATE_LIN;
+
 // User definitions
 
 // User function definition

@@ -6,6 +6,7 @@ struct fifo LIN_RX;
 struct fifo LIN_TX;
 struct fifo RS232_RX;
 struct fifo RS232_TX;
+uint16_t BAUDRATE_LIN = 9600UL;
 
 bool waitLinSlave = FALSE;
 enum avCommands parsedCommand = none_command;
@@ -22,6 +23,7 @@ int main()
 {
 	lin_transmit.state = wait_pid;
 	SysInit();
+	print("LIN adapter ver. 1.0 2022-02-21\n\r");
 	nvic_irq_enable(USART0_IRQn, 2, 1); // For UART0_PC
 	nvic_irq_enable(USART1_IRQn, 1, 1); // For J1708 UART IRQ
 										// nvic_irq_enable(TIMER0_UP_IRQn, 2, 2); // For timming definition
@@ -32,17 +34,17 @@ int main()
 		// Parse RS232 fifo
 		if (GetSize(&RS232_RX) != 0)
 		{ // All fields for lin packet recieved
-			uint8_t currByte = Pull(&RS232_RX);
 			if (parsedCommand == none_command)
 			{
-				parsedCommand = GetCommand(currByte);
+				parsedCommand = GetCommand(Pull(&RS232_RX));
 			}
 			else
 			{
 				switch (parsedCommand)
 				{
 				case setBaud:
-
+					BAUDRATE_LIN = Pull(&RS232_RX) * 100;				
+					print("Set baud\n\r");
 					break;
 
 				case setCRC:
@@ -54,7 +56,7 @@ int main()
 					break;
 
 				case getInfo:
-
+					print("Get info\r\n");
 					break;
 
 				case sendSlave:
@@ -62,13 +64,10 @@ int main()
 					break;
 
 				case sendMaster:
-					if (GetLinPacket(currByte, &lin_transmit))
+					if (GetLinPacket(Pull(&RS232_RX), &lin_transmit))
 					{
 						// TODO: Add lin send
 						parsedCommand = none_command;
-					}
-					else{
-						GetLinPacket(currByte, &lin_transmit);
 					}
 					break;
 

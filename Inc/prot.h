@@ -16,3 +16,6 @@ enum avCommands
 extern enum avCommands parsedCommand;
 
 enum avCommands GetCommand(uint8_t currByte);
+
+void print(char* pMsg);
+
