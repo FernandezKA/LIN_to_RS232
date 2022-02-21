@@ -8,6 +8,8 @@
 
 enum lin_state
 {
+	wait_break,
+	wait_synch,
 	wait_pid,
 	wait_data,
 	wait_crc,
@@ -36,8 +38,8 @@ void LinClear(lin *packet);
 
 bool GetLinPacket(uint8_t data, lin *packet);
 
-void LinSend(lin *packet, bool isMaster);
+void LinSend(lin *packet);
 
-uint8_t GetCRC(lin *packet, bool isEnhanced);
+uint8_t GetCRC(lin *packet, enum CRC_Type* crc_type);
 
 uint8_t GetLinSize(lin *packet);

@@ -22,7 +22,7 @@ bool GetLinPacket(uint8_t data, lin *packet)
 		else
 		{
 			packet->data[packet->countData++] = data;
-			packet->crc = GetCRC(packet, 1);
+			packet->crc = GetCRC(packet, &CRC_parse);
 			packet->state = wait_pid;
 			status = TRUE;
 		}
@@ -46,10 +46,9 @@ void LinClear(lin *packet)
 }
 
 // This function send lin packet
-void LinSend(lin *packet, bool isMaster)
+void LinSend(lin *packet)
 {
-	if (isMaster)
-	{
+		usart_send_break(USART_LIN);
 		while ((USART_STAT(USART_LIN) & USART_STAT_TBE) == USART_STAT_TBE)
 		{
 			__NOP();
@@ -84,12 +83,6 @@ void LinSend(lin *packet, bool isMaster)
 		{
 			usart_data_transmit(USART_LIN, packet->rcrc);
 		}
-	}
-	else
-	{
-		lin_slave = *packet;
-		waitLinSlave = TRUE;
-	}
 }
 
 // This function return lin packet size from current PID
@@ -111,10 +104,10 @@ uint8_t GetLinSize(lin *packet)
 }
 
 // This function calculate CRC for lin packet
-uint8_t GetCRC(lin *packet, bool isEnhanced)
+uint8_t GetCRC(lin *packet, enum CRC_Type* crc_type)
 {
 	uint8_t sum = 0;
-	if (isEnhanced)
+	if (crc_type == Enhanced)
 	{
 		sum = packet->PID;
 	}

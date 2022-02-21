@@ -19,12 +19,8 @@ extern struct fifo LIN_RX;
 extern struct fifo LIN_TX;
 extern struct fifo RS232_RX;
 extern struct fifo RS232_TX;
-
 extern uint32_t SysCounter;
-
 extern uint16_t BAUDRATE_LIN;
-//extern bool isEnhanced;
-//extern bool isFiltered; 
 
 enum CRC_Type{
 Enhanced, 
