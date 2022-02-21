@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+//#include <stdbool.h>
 
 // GD Includes
 #include <gd32f10x.h>
@@ -22,6 +23,29 @@ extern struct fifo RS232_TX;
 extern uint32_t SysCounter;
 
 extern uint16_t BAUDRATE_LIN;
+//extern bool isEnhanced;
+//extern bool isFiltered; 
+
+enum CRC_Type{
+Enhanced, 
+Classic
+};
+
+enum Filtering{
+Hide_invalid, 
+Show_invalid
+};
+
+enum Slave_type{
+right_now, 
+PID_compare, 
+undef
+};
+
+
+extern enum CRC_Type CRC_parse;
+extern enum Filtering Filtering_parse;
+extern enum Slave_type Slave_parse;
 
 // User definitions
 

@@ -27,6 +27,10 @@ bool GetLinPacket(uint8_t data, lin *packet)
 			status = TRUE;
 		}
 		break;
+		
+	default:
+		__NOP();
+	break;
 	}
 	return status;
 }
