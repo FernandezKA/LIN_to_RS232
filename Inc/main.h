@@ -14,6 +14,9 @@
 // User includes
 #include "fifo.h"
 
+
+#define USART_LIN USART0
+#define USART_RS232 USART1
 // User global variables
 extern struct fifo LIN_RX;
 extern struct fifo LIN_TX;

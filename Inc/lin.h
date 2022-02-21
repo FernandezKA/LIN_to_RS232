@@ -3,9 +3,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define USART_RS232 USART0
-#define USART_LIN USART1
-
 enum lin_state
 {
 	wait_break,
@@ -31,7 +28,7 @@ typedef struct LIN lin;
 
 extern lin lin_received;
 extern lin lin_transmit;
-extern lin lin_slave;
+extern lin lin_slave_transmit;
 extern bool waitLinSlave;
 
 void LinClear(lin *packet);
@@ -43,3 +40,7 @@ void LinSend(lin *packet);
 uint8_t GetCRC(lin *packet, enum CRC_Type* crc_type);
 
 uint8_t GetLinSize(lin *packet);
+
+void LinDataFrameSend(lin* packet_slave);
+
+static inline void SendLIN(uint8_t data);

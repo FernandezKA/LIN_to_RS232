@@ -8,6 +8,22 @@ bool GetLinPacket(uint8_t data, lin *packet)
 
 	switch (packet->state)
 	{
+		case wait_break:
+			
+		break;
+		
+		case wait_synch:
+			
+		break;
+		
+		case wait_crc:
+			
+		break;
+		
+		case completed:
+			
+		break;
+		
 	case wait_pid:
 		packet->PID = data;
 		packet->size = GetLinSize(packet);
@@ -27,10 +43,6 @@ bool GetLinPacket(uint8_t data, lin *packet)
 			status = TRUE;
 		}
 		break;
-		
-	default:
-		__NOP();
-	break;
 	}
 	return status;
 }
@@ -48,41 +60,14 @@ void LinClear(lin *packet)
 // This function send lin packet
 void LinSend(lin *packet)
 {
-		usart_send_break(USART_LIN);
-		while ((USART_STAT(USART_LIN) & USART_STAT_TBE) == USART_STAT_TBE)
-		{
-			__NOP();
-		}
-		usart_data_transmit(USART_LIN, 0x55U);
-		while ((USART_STAT(USART_LIN) & USART_STAT_TBE) == USART_STAT_TBE)
-		{
-			__NOP();
-		}
-		usart_data_transmit(USART_LIN, packet->PID);
-		while ((USART_STAT(USART_LIN) & USART_STAT_TBE) == USART_STAT_TBE)
-		{
-			__NOP();
-		}
-		for (uint16_t i = 0; i < packet->size; ++i)
-		{
-			while ((USART_STAT(USART_LIN) & USART_STAT_TBE) == USART_STAT_TBE)
-			{
-				__NOP();
-			}
-			usart_data_transmit(USART_LIN, packet->data[i]);
-		}
-		while ((USART_STAT(USART_LIN) & USART_STAT_TBE) == USART_STAT_TBE)
-		{
-			__NOP();
-		}
-		if (packet->crc == packet->rcrc)
-		{
-			usart_data_transmit(USART_LIN, packet->crc);
-		}
-		else
-		{
-			usart_data_transmit(USART_LIN, packet->rcrc);
-		}
+	usart_send_break(USART_LIN);
+	SendLIN(0x55);
+	SendLIN(packet->PID);
+	for (uint16_t i = 0; i < packet->size; ++i)
+	{
+		SendLIN(packet->data[i]);
+	}
+	SendLIN(packet->crc);
 }
 
 // This function return lin packet size from current PID
@@ -104,7 +89,7 @@ uint8_t GetLinSize(lin *packet)
 }
 
 // This function calculate CRC for lin packet
-uint8_t GetCRC(lin *packet, enum CRC_Type* crc_type)
+uint8_t GetCRC(lin *packet, enum CRC_Type *crc_type)
 {
 	uint8_t sum = 0;
 	if (crc_type == Enhanced)
@@ -122,4 +107,22 @@ uint8_t GetCRC(lin *packet, enum CRC_Type* crc_type)
 	}
 
 	return sum ^ 0xFF;
+}
+
+static inline void SendLIN(uint8_t data)
+{
+	while ((USART_STAT(USART_LIN) & USART_STAT_TBE) != USART_STAT_TBE)
+	{
+		__NOP();
+	}
+	usart_data_transmit(USART_LIN, data);
+}
+
+void LinDataFrameSend(lin *packet_slave)
+{
+	for (uint8_t i = 0; i < packet_slave->size; ++i)
+	{
+		SendLIN(packet_slave->data[i]);
+	}
+	SendLIN(packet_slave->crc);
 }

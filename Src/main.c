@@ -14,6 +14,7 @@ enum avCommands parsedCommand = none_command;
 lin lin_slave;
 lin lin_received;
 lin lin_transmit;
+lin lin_slave_transmit;
 uint32_t SysCounter = 0;
 enum CRC_Type CRC_parse;
 enum Filtering Filtering_parse;
@@ -41,13 +42,13 @@ int main()
 		/*******************************************************************************/
 		/*******************************************************************************/
 		// Parse RS232 fifo
-		if (GetSize(&RS232_RX) != 0)
+		if (GetSize(&RS232_RX) != 0)//Check data from PC
 		{ // All fields for lin packet recieved
-			if (parsedCommand == none_command)
+			if (parsedCommand == none_command)//Receive command frame
 			{
 				parsedCommand = GetCommand(Pull(&RS232_RX));
 			}
-			else
+			else//Receive command argument
 			{
 				switch (parsedCommand)
 				{
@@ -126,9 +127,9 @@ int main()
 					}
 					else
 					{
-						if (GetLinPacket(Pull(&RS232_RX), &lin_transmit))
+						if (GetLinPacket(Pull(&RS232_RX), &lin_slave_transmit))
 						{
-							// TODO: add send slave
+							lin_slave_transmit.state = completed;
 						}
 					}
 					break;
@@ -158,18 +159,6 @@ int main()
 		/*******************************************************************************/
 		/*******************************************************************************/
 		/*******************************************************************************/
-		if (GetSize(&LIN_RX) != 0)
-		{
-		}
-		/*******************************************************************************/
-		/*******************************************************************************/
-		/*******************************************************************************/
-		if (GetSize(&LIN_TX) != 0)
-		{
-		}
-		/*******************************************************************************/
-		/*******************************************************************************/
-		/*******************************************************************************/
 		if (lin_received.state == completed)
 		{ // Packet from LIN bus recognized, need to send to RS232
 
@@ -185,6 +174,7 @@ int main()
 			}
 			else
 			{ // Invalid CRC
+			//Get out 0x00 + PID + Data frame + CRC (valid)
 				if (Filtering_parse == Show_invalid)
 				{
 					Push(&RS232_TX, 0x00);
@@ -198,6 +188,7 @@ int main()
 				}
 				else
 				{
+					//Remove invalid packet
 					lin_received.state = wait_break;
 				}
 			}
