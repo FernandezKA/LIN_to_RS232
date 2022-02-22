@@ -17,7 +17,7 @@ lin lin_slave_transmit;
 uint32_t SysCounter = 0;
 enum CRC_Type CRC_parse;
 enum Filtering Filtering_parse;
-enum Slave_type Slave_parse;
+enum Slave_type Slave_parse = undef;
 /*******************************************************************************/
 /*******************************************************************************/
 /*******************************************************************************/
@@ -29,6 +29,7 @@ int main()
 {
 	lin_transmit.state = wait_pid;
 	lin_received.state = wait_break;
+	lin_slave_transmit.state = wait_pid;
 	SysInit();
 	print("LIN adapter ver. 1.0 2022-02-21\n\r");
 	nvic_irq_enable(USART0_IRQn, 2, 1); // For UART0_PC
@@ -60,12 +61,13 @@ int main()
 					/*******************************************************************************/
 				case setBaud:
 					BAUDRATE_LIN = Pull(&RS232_RX) * 100;
+					USART_BAUD(USART_LIN) = BAUDRATE_LIN;
 					print("BAUDRATE is set\n\r");
 					parsedCommand = none_command;
 					break;
 					/*******************************************************************************/
 				case setCRC:
-					if (CRC_parse == Enhanced)
+					if (Pull(&RS232_RX) == 0)
 					{
 						CRC_parse = Classic;
 						print("Classic CRC selected\n\r");
@@ -107,6 +109,13 @@ int main()
 					{
 						print("Undefined BAUDRATE\n\r");
 					}
+					/********************************************************************************/
+					if(CRC_parse == Classic){
+						print("Classic CRC calculate\n\r");
+					}
+					else{
+						print("Enhanced CRC calculate\n\r");
+					}
 					/*******************************************************************************/
 					if (Filtering_parse == Show_invalid)
 					{
@@ -139,8 +148,17 @@ int main()
 					{
 						if (GetLinPacket(Pull(&RS232_RX), &lin_slave_transmit))
 						{
+							if(Slave_parse == right_now){
+								LinDataFrameSend(&lin_slave_transmit);
+								LinClear(&lin_slave_transmit);
+								Slave_parse = undef;
+								parsedCommand = none_command;
+							}
+							else{
 							lin_slave_transmit.state = completed;
 							parsedCommand = none_command;
+							Slave_parse = undef;
+							}
 						}
 					}
 					break;
@@ -150,6 +168,7 @@ int main()
 					{
 						print("Packet received from RS232\n\r");
 						LinSend(&lin_transmit);
+						LinClear(&lin_transmit);
 						parsedCommand = none_command;
 						// TODO: Add lin send
 					}
@@ -174,7 +193,6 @@ int main()
 		/*******************************************************************************/
 		if (lin_received.state == completed)
 		{ // Packet from LIN bus recognized, need to send to RS232
-
 			if (lin_received.crc == lin_received.rcrc)
 			{ // CRC is correctly
 				Push(&RS232_TX, lin_received.PID);
@@ -206,9 +224,6 @@ int main()
 				}
 			}
 		}
-		/*******************************************************************************/
-		/*******************************************************************************/
-		/*******************************************************************************/
 	}
 }
 /*******************************************************************************/

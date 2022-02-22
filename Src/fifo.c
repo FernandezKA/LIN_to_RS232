@@ -8,7 +8,7 @@ void FifoInit(FIFO *buf)
 
 void Push(FIFO *buf, BufDataType data)
 {
-	if (GetSize(buf) == 0xFF)
+	if (GetSize(buf) == BufSize)
 	{
 		buf->Head = 0x00;
 		buf->Data[buf->Head++] = data;
@@ -21,7 +21,11 @@ void Push(FIFO *buf, BufDataType data)
 
 BufDataType Pull(FIFO *buf)
 {
-	return buf->Data[buf->Tail++];
+	BufDataType currByte = buf->Data[buf->Tail++];
+	if(buf->Head == buf-> Tail){
+		 FifoInit(buf);
+	}
+	return currByte;
 }
 
 uint16_t GetSize(FIFO *buf)
