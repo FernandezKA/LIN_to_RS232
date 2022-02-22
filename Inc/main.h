@@ -15,8 +15,8 @@
 #include "fifo.h"
 
 
-#define USART_LIN USART0
-#define USART_RS232 USART1
+#define USART_LIN USART1
+#define USART_RS232 USART0
 // User global variables
 extern struct fifo LIN_RX;
 extern struct fifo LIN_TX;

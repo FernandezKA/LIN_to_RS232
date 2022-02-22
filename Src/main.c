@@ -11,7 +11,6 @@ struct fifo RS232_TX;
 uint16_t BAUDRATE_LIN = 9600UL;
 bool waitLinSlave = FALSE;
 enum avCommands parsedCommand = none_command;
-lin lin_slave;
 lin lin_received;
 lin lin_transmit;
 lin lin_slave_transmit;
@@ -33,7 +32,7 @@ int main()
 	SysInit();
 	print("LIN adapter ver. 1.0 2022-02-21\n\r");
 	nvic_irq_enable(USART0_IRQn, 2, 1); // For UART0_PC
-	nvic_irq_enable(USART1_IRQn, 1, 1); // For J1708 UART IRQ
+	nvic_irq_enable(USART1_IRQn, 1, 1); // For LIN UART IRQ
 	// nvic_irq_enable(TIMER0_UP_IRQn, 2, 2); // For timming definition
 	for (;;)
 	{
@@ -47,6 +46,12 @@ int main()
 			if (parsedCommand == none_command)//Receive command frame
 			{
 				parsedCommand = GetCommand(Pull(&RS232_RX));
+				if(parsedCommand == none_command){
+					 print("Undefined commmand\n\r");
+				}
+				else{
+					 print("Enter argument\n\r");
+				}
 			}
 			else//Receive command argument
 			{
@@ -55,7 +60,8 @@ int main()
 					/*******************************************************************************/
 				case setBaud:
 					BAUDRATE_LIN = Pull(&RS232_RX) * 100;
-					print("Set baud\n\r");
+					print("BAUDRATE is set\n\r");
+					parsedCommand = none_command;
 					break;
 					/*******************************************************************************/
 				case setCRC:
@@ -69,6 +75,7 @@ int main()
 						CRC_parse = Enhanced;
 						print("Enhanced CRC selected\n\r");
 					}
+					parsedCommand = none_command;
 					break;
 					/*******************************************************************************/
 				case setFilter:
@@ -82,9 +89,11 @@ int main()
 						Filtering_parse = Show_invalid;
 						print("Packets with invalid CRC will be show\n\r");
 					}
+					parsedCommand = none_command;
 					break;
 					/*******************************************************************************/
 				case getInfo:
+					Pull(&RS232_RX);
 					/*******************************************************************************/
 					if (BAUDRATE_LIN == 9600U)
 					{
@@ -111,6 +120,7 @@ int main()
 					{
 						print("Mode of filtering packets don't be selected\n\r");
 					}
+					parsedCommand = none_command;
 					break;
 					/*******************************************************************************/
 				case sendSlave:
@@ -130,6 +140,7 @@ int main()
 						if (GetLinPacket(Pull(&RS232_RX), &lin_slave_transmit))
 						{
 							lin_slave_transmit.state = completed;
+							parsedCommand = none_command;
 						}
 					}
 					break;
@@ -137,8 +148,10 @@ int main()
 				case sendMaster:
 					if (GetLinPacket(Pull(&RS232_RX), &lin_transmit))
 					{
-						// TODO: Add lin send
+						print("Packet received from RS232\n\r");
+						LinSend(&lin_transmit);
 						parsedCommand = none_command;
+						// TODO: Add lin send
 					}
 					break;
 					/*******************************************************************************/

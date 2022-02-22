@@ -9,7 +9,8 @@ void USART0_IRQHandler(void)
 {
 	if (usart_flag_get(USART_RS232, USART_FLAG_RBNE))
 	{
-		Push(&RS232_RX, (uint8_t)usart_data_receive(USART0));
+		usart_flag_clear(USART_RS232, USART_FLAG_RBNE);
+		Push(&RS232_RX, (uint8_t)usart_data_receive(USART_RS232));
 	}
 	else if (usart_flag_get(USART_RS232, USART_FLAG_TBE))
 	{
