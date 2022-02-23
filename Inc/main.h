@@ -10,6 +10,7 @@
 #include <gd32f10x_timer.h>
 #include <gd32f10x_misc.h>
 #include <gd32f10x_usart.h>
+#include <gd32f10x_fmc.h>
 
 // User includes
 #include "fifo.h"
@@ -24,6 +25,8 @@ extern struct fifo RS232_RX;
 extern struct fifo RS232_TX;
 extern uint32_t SysCounter;
 extern uint16_t BAUDRATE_LIN;
+
+extern volatile uint32_t*  infoPage;
 
 enum CRC_Type{
 Enhanced, 

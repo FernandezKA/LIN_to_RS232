@@ -18,10 +18,14 @@ uint32_t SysCounter = 0;
 enum CRC_Type CRC_parse;
 enum Filtering Filtering_parse = Show_invalid;
 enum Slave_type Slave_parse = undef;
+
+volatile uint32_t*  infoPage = (uint32_t*) 0x0801FC00; 
+
 /*******************************************************************************/
 /*******************************************************************************/
 /*******************************************************************************/
 static inline void SysInit(void);
+static inline void GetBackup(enum CRC_Type* crc, enum Filtering* filt, uint16_t* baud, volatile uint32_t* pInfo, bool direction);
 /*******************************************************************************/
 /*******************************************************************************/
 /*******************************************************************************/
@@ -31,6 +35,7 @@ int main()
 	lin_received.state = wait_break;
 	lin_slave_transmit.state = wait_pid;
 	SysInit();
+	GetBackup(&CRC_parse, &Filtering_parse, &BAUDRATE_LIN, infoPage, 0);
 	print("LIN adapter ver. 1.0 2022-02-21\n\r");
 	nvic_irq_enable(USART0_IRQn, 2, 1); // For UART0_PC
 	nvic_irq_enable(USART1_IRQn, 1, 1); // For LIN UART IRQ
@@ -63,6 +68,7 @@ int main()
 					BAUDRATE_LIN = Pull(&RS232_RX) * 100;
 					USART_BAUD(USART_LIN) = BAUDRATE_LIN;
 					print("BAUDRATE is set\n\r");
+					GetBackup(&CRC_parse, &Filtering_parse, &BAUDRATE_LIN, infoPage, 1);
 					parsedCommand = none_command;
 					break;
 					/*******************************************************************************/
@@ -77,6 +83,7 @@ int main()
 						CRC_parse = Enhanced;
 						print("Enhanced CRC selected\n\r");
 					}
+					GetBackup(&CRC_parse, &Filtering_parse, &BAUDRATE_LIN, infoPage, 1);
 					parsedCommand = none_command;
 					break;
 					/*******************************************************************************/
@@ -91,6 +98,7 @@ int main()
 						Filtering_parse = Show_invalid;
 						print("Packets with invalid CRC will be show\n\r");
 					}
+					GetBackup(&CRC_parse, &Filtering_parse, &BAUDRATE_LIN, infoPage, 1);
 					parsedCommand = none_command;
 					break;
 					/*******************************************************************************/
@@ -109,14 +117,14 @@ int main()
 					{
 						print("Undefined BAUDRATE\n\r");
 					}
-					/********************************************************************************/
+					/***************************************************/
 					if(CRC_parse == Classic){
 						print("Classic CRC calculate\n\r");
 					}
 					else{
 						print("Enhanced CRC calculate\n\r");
 					}
-					/*******************************************************************************/
+					/****************************************************/
 					if (Filtering_parse == Show_invalid)
 					{
 						print("Packets with invalid CRC don't be hide \n\r");
@@ -237,3 +245,22 @@ static inline void SysInit(void)
 	USART1_Init();
 	TIM0_Init();
 }
+
+//This function for backup|read settings from flash memory
+//Direction: 0 - read, 1 - write
+static inline void GetBackup(enum CRC_Type* crc, enum Filtering* filt, uint16_t* baud, volatile uint32_t* pInfo, bool direction){
+	if(direction){//Write info
+	fmc_unlock();
+	fmc_page_erase((uint32_t) pInfo);
+	fmc_word_program((uint32_t) pInfo ,*crc);
+	fmc_word_program((uint32_t) pInfo + sizeof(uint32_t) ,*filt);
+	fmc_word_program((uint32_t) pInfo + 2 * sizeof(uint32_t) ,*baud);
+	fmc_lock();
+	}
+	else{
+	*crc = (enum CRC_Type) pInfo[0];
+	*filt = (enum Filtering) pInfo[1];
+	*baud = (uint16_t) pInfo[2];
+	}
+}
+
