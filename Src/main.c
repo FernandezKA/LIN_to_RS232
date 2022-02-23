@@ -16,7 +16,7 @@ lin lin_transmit;
 lin lin_slave_transmit;
 uint32_t SysCounter = 0;
 enum CRC_Type CRC_parse;
-enum Filtering Filtering_parse;
+enum Filtering Filtering_parse = Show_invalid;
 enum Slave_type Slave_parse = undef;
 /*******************************************************************************/
 /*******************************************************************************/
