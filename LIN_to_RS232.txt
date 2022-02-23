@@ -3,6 +3,15 @@ LIN_to_RS232 ver. 1.0 2022-02-21
 Aviable baudrate value for lin: 9600, 19200
 RS232 baudrate: 115200
 
+PinOut:
+
+USART0 (USART_PC)
+	PA9 - TX
+	PA10 - RX
+USART1 (USART_LIN)
+	PA2 - TX
+	PA3 - RX
+
 Доступные команды конфигурации:
 1) 'b' 96 - set baud 9600
 2) 'b' 192 - set baud 19200
