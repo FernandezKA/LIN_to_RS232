@@ -2,7 +2,7 @@
 
 #define TRUE true
 #define FALSE false
-	
+
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -20,6 +20,7 @@
 // User includes
 #include "fifo.h"
 
+#define USB_VCP
 
 #define USART_LIN USART1
 #define USART_RS232 USART0
@@ -31,24 +32,26 @@ extern struct fifo RS232_TX;
 extern uint32_t SysCounter;
 extern uint16_t BAUDRATE_LIN;
 
-extern volatile uint32_t*  infoPage;
+extern volatile uint32_t *infoPage;
 
-enum CRC_Type{
-Enhanced, 
-Classic
+enum CRC_Type
+{
+    Enhanced,
+    Classic
 };
 
-enum Filtering{
-Hide_invalid, 
-Show_invalid
+enum Filtering
+{
+    Hide_invalid,
+    Show_invalid
 };
 
-enum Slave_type{
-right_now, 
-PID_compare, 
-undef
+enum Slave_type
+{
+    right_now,
+    PID_compare,
+    undef
 };
-
 
 extern enum CRC_Type CRC_parse;
 extern enum Filtering Filtering_parse;
@@ -62,3 +65,4 @@ void GPIO_Init(void);
 void USART0_Init(void);
 void USART1_Init(void);
 void TIM0_Init(void);
+void USBD_Init(void);

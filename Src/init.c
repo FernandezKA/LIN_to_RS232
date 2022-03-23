@@ -4,14 +4,21 @@ void CLK_Init(void) {}
 
 void GPIO_Init(void)
 {
-	RCU_APB2EN |= RCU_APB2EN_PCEN;
+	RCU_APB2EN |= RCU_APB2EN_PCEN | RCU_APB2EN_PAEN;
+	RCU_APB2EN |= RCU_APB2EN_USART0EN;
+
+	rcu_periph_clock_enable(RCU_USBD);
+	rcu_ckout0_config(RCU_CKOUT0SRC_CKSYS);
+	rcu_usb_clock_config(RCU_CKUSB_CKPLL_DIV2);
+
 	gpio_init(GPIOC, GPIO_MODE_OUT_OD, GPIO_OSPEED_10MHZ, GPIO_PIN_13); // It's led for indicate activity
+	gpio_init(GPIOA, GPIO_MODE_AF_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_11);	// usb
+	gpio_init(GPIOA, GPIO_MODE_AF_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_12);	// usb
 }
 // This uart used for RS232 communicate
 void USART0_Init(void)
 {
-	RCU_APB2EN |= RCU_APB2EN_USART0EN;
-	RCU_APB2EN |= RCU_APB2EN_PAEN;
+
 	usart_deinit(USART0);
 	usart_baudrate_set(USART0, 115200UL);
 	usart_parity_config(USART0, USART_PM_NONE);
@@ -36,10 +43,8 @@ void USART1_Init(void)
 	usart_receive_config(USART1, USART_RECEIVE_ENABLE);
 	usart_interrupt_enable(USART1, USART_INT_RBNE);
 	usart_interrupt_enable(USART1, USART_INT_LBD); // Lin break detect
-	// This part of cide untested into hardware
 	usart_lin_mode_enable(USART1);
 	usart_interrupt_enable(USART1, USART_INT_LBD);
-	// End of untested code
 	gpio_afio_deinit();
 	gpio_init(GPIOA, GPIO_MODE_AF_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_2);
 	gpio_init(GPIOA, GPIO_MODE_IPD, GPIO_OSPEED_50MHZ, GPIO_PIN_3);

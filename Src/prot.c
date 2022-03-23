@@ -1,7 +1,8 @@
 #include "prot.h"
+#include "main.h"
 enum avCommands GetCommand(uint8_t currByte)
 {
-	enum avCommands currCommand = none_command;
+    enum avCommands currCommand = none_command;
     switch (currByte)
     {
     case 'b':
@@ -52,25 +53,73 @@ enum avCommands GetCommand(uint8_t currByte)
         currCommand = sendMaster;
         break;
     }
-		return currCommand;
+    return currCommand;
 }
 
-void print(char* pMsg){
-	uint8_t countSend = 0;
-	char lastChar = 0;
-	char currChar = 0;
-	bool isEnd = FALSE;
-	while(!isEnd && countSend != 0xFF){
-		lastChar = currChar;
-		currChar = pMsg[countSend++];
-		if((lastChar == 0x0A) && (currChar == 0x0D)){
-			 isEnd = TRUE;
-		}
-		else if((lastChar == 0x0D) && (currChar == 0x0A)){
-			 isEnd = TRUE;
-		}
-		while((USART_STAT(USART0)&USART_STAT_TBE) != USART_STAT_TBE){__NOP();}
-		usart_data_transmit(USART0, currChar);
-	}
+void print(char *pMsg)
+{
+    uint8_t countSend = 0;
+    char lastChar = 0;
+    char currChar = 0;
+    bool isEnd = FALSE;
+    while (!isEnd && countSend != 0xFF)
+    {
+        lastChar = currChar;
+        currChar = pMsg[countSend++];
+        if ((lastChar == 0x0A) && (currChar == 0x0D))
+        {
+            isEnd = TRUE;
+        }
+        else if ((lastChar == 0x0D) && (currChar == 0x0A))
+        {
+            isEnd = TRUE;
+        }
+#ifndef USB_VCP
+        while ((USART_STAT(USART0) & USART_STAT_TBE) != USART_STAT_TBE)
+        {
+            __NOP();
+        }
+        usart_data_transmit(USART0, currChar);
+#else
+        usb_data_buffer[countSend++] = currChar;
+#endif
+    }
+#ifdef USB_VCP
+    if (USBD_CONFIGURED == usb_device_dev.status)
+    {
+        cdc_acm_data_send(&usb_device_dev, countSend);
+    }
+#endif
 }
-
+//This function send to vcp nums
+void print_num(uint32_t num)
+{
+    usb_data_buffer[0] = ((num & 0xFF000000) >> 24);
+    usb_data_buffer[1] = ((num & 0x00FF0000) >> 16);
+    usb_data_buffer[2] = ((num & 0x0000FF00) >> 8);
+    usb_data_buffer[3] = ((num & 0x000000FF));
+#ifdef USB_VCP
+    if (USBD_CONFIGURED == usb_device_dev.status)
+    {
+        cdc_acm_data_send(&usb_device_dev, 4);
+    }
+#endif
+}
+//This function receive baudval
+bool receive_baudval(uint32_t* baud, uint8_t* countBytes, uint8_t currByte){
+    if (countBytes == 0){
+        *baud = currByte << ((3 - countBytes) * 8);
+        ++(*countBytes);
+        return false;  
+    }
+    else if (countBytes < 3){
+        *baud |= currByte << ((3 - countBytes) * 8);
+        ++(*countBytes);
+        return false;
+    }
+    else{
+        *countBytes = 0; 
+        *baud |= currByte << ((3 - countBytes) * 8);
+        return true;
+    }
+}

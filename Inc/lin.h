@@ -37,10 +37,10 @@ bool GetLinPacket(uint8_t data, lin *packet);
 
 void LinSend(lin *packet);
 
-uint8_t GetCRC(lin *packet, enum CRC_Type* crc_type);
+uint8_t GetCRC(lin *packet, enum CRC_Type *crc_type);
 
 uint8_t GetLinSize(lin *packet);
 
-void LinDataFrameSend(lin* packet_slave);
+void LinDataFrameSend(lin *packet_slave);
 
 static inline void SendLIN(uint8_t data);

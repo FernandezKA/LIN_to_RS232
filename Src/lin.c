@@ -8,22 +8,22 @@ bool GetLinPacket(uint8_t data, lin *packet)
 
 	switch (packet->state)
 	{
-		case wait_break:
-			
+	case wait_break:
+
 		break;
-		
-		case wait_synch:
-			
+
+	case wait_synch:
+
 		break;
-		
-		case wait_crc:
-			
+
+	case wait_crc:
+
 		break;
-		
-		case completed:
-			
+
+	case completed:
+
 		break;
-		
+
 	case wait_pid:
 		packet->PID = data;
 		packet->size = GetLinSize(packet);

@@ -22,8 +22,9 @@ void Push(FIFO *buf, BufDataType data)
 BufDataType Pull(FIFO *buf)
 {
 	BufDataType currByte = buf->Data[buf->Tail++];
-	if(buf->Head == buf-> Tail){
-		 FifoInit(buf);
+	if (buf->Head == buf->Tail)
+	{
+		FifoInit(buf);
 	}
 	return currByte;
 }
