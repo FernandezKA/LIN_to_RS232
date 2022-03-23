@@ -1,5 +1,4 @@
 #include "prot.h"
-
 enum avCommands GetCommand(uint8_t currByte)
 {
 	enum avCommands currCommand = none_command;

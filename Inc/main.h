@@ -1,7 +1,10 @@
 #pragma once
 
+#define TRUE true
+#define FALSE false
+	
 #include <stdint.h>
-//#include <stdbool.h>
+#include <stdbool.h>
 
 // GD Includes
 #include <gd32f10x.h>
@@ -11,6 +14,8 @@
 #include <gd32f10x_misc.h>
 #include <gd32f10x_usart.h>
 #include <gd32f10x_fmc.h>
+#include "usbd_int.h"
+#include "cdc_core.h"
 
 // User includes
 #include "fifo.h"

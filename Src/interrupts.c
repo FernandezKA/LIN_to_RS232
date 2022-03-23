@@ -112,3 +112,10 @@ void TIMER0_UP_IRQHandler(void)
 		GPIO_OCTL(GPIOC) ^= (1 << 13);
 	}
 }
+
+
+
+void USBD_LP_CAN0_RX0_IRQHandler(void)
+{
+	usbd_isr();
+}

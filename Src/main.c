@@ -1,6 +1,7 @@
 #include "main.h"
 #include "lin.h"
 #include "prot.h"
+#include "cdc_core.h"
 /*******************************************************************************/
 /*******************************************************************************/
 // User global variables declarations
@@ -23,6 +24,22 @@ volatile uint32_t*  infoPage = (uint32_t*) 0x0801FC00;
 
 /*******************************************************************************/
 /*******************************************************************************/
+//For usbd implementation 
+extern uint8_t packet_sent, packet_receive;
+extern uint32_t receive_length;
+extern uint8_t usb_data_buffer[CDC_ACM_DATA_PACKET_SIZE];
+
+usbd_core_handle_struct usb_device_dev =
+	{
+		.dev_desc = (uint8_t *)&device_descriptor,
+		.config_desc = (uint8_t *)&configuration_descriptor,
+		.strings = usbd_strings,
+		.class_init = cdc_acm_init,
+		.class_deinit = cdc_acm_deinit,
+		.class_req_handler = cdc_acm_req_handler,
+		.class_data_handler = cdc_acm_data_handler
+	};
+
 /*******************************************************************************/
 static inline void SysInit(void);
 static inline void GetBackup(enum CRC_Type* crc, enum Filtering* filt, uint16_t* baud, volatile uint32_t* pInfo, bool direction);
@@ -40,6 +57,7 @@ int main()
 	nvic_irq_enable(USART0_IRQn, 2, 1); // For UART0_PC
 	nvic_irq_enable(USART1_IRQn, 1, 1); // For LIN UART IRQ
 	// nvic_irq_enable(TIMER0_UP_IRQn, 2, 2); // For timming definition
+	
 	for (;;)
 	{
 		// This part of code parse inout data buff
