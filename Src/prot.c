@@ -108,18 +108,18 @@ void print_num(uint32_t num)
 //This function receive baudval
 bool receive_baudval(uint32_t* baud, uint8_t* countBytes, uint8_t currByte){
     if (countBytes == 0){
-        *baud = currByte << ((3 - countBytes) * 8);
+        *baud = currByte << ((3 - *countBytes) * 8);
         ++(*countBytes);
         return false;  
     }
-    else if (countBytes < 3){
-        *baud |= currByte << ((3 - countBytes) * 8);
+    else if (*countBytes < 3){
+        *baud |= currByte << ((3 - *countBytes) * 8);
         ++(*countBytes);
         return false;
     }
     else{
         *countBytes = 0; 
-        *baud |= currByte << ((3 - countBytes) * 8);
+        *baud |= currByte << ((3 - *countBytes) * 8);
         return true;
     }
 }

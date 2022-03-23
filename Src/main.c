@@ -10,6 +10,7 @@ struct fifo LIN_TX;
 struct fifo RS232_RX;
 struct fifo RS232_TX;
 uint32_t BAUDRATE_LIN = 9600UL;
+uint8_t count_baud_bytes = 0;
 bool waitLinSlave = FALSE;
 enum avCommands parsedCommand = none_command;
 lin lin_received;
@@ -41,7 +42,7 @@ usbd_core_handle_struct usb_device_dev =
 
 /*******************************************************************************/
 static inline void SysInit(void);
-static inline void GetBackup(enum CRC_Type *crc, enum Filtering *filt, uint16_t *baud, volatile uint32_t *pInfo, bool direction);
+static inline void GetBackup(enum CRC_Type *crc, enum Filtering *filt, uint32_t *baud, volatile uint32_t *pInfo, bool direction);
 /*******************************************************************************/
 /*******************************************************************************/
 /*******************************************************************************/
@@ -108,7 +109,7 @@ int main()
 				{
 					/*******************************************************************************/
 				case setBaud:
-					if (!receive_baudval())
+					if (!receive_baudval(&BAUDRATE_LIN, &count_baud_bytes, Pull(&RS232_RX)))
 					{
 						__NOP();
 					}

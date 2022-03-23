@@ -30,7 +30,9 @@ extern struct fifo LIN_TX;
 extern struct fifo RS232_RX;
 extern struct fifo RS232_TX;
 extern uint32_t SysCounter;
-extern uint16_t BAUDRATE_LIN;
+extern uint32_t BAUDRATE_LIN;
+
+extern uint8_t usb_data_buffer[CDC_ACM_DATA_PACKET_SIZE];
 
 extern volatile uint32_t *infoPage;
 
