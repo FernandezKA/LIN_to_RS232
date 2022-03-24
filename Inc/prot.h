@@ -21,4 +21,4 @@ void print(char *pMsg);
 
 void print_num(uint32_t num);
 
-bool receive_baudval(uint32_t* baud, uint8_t* countBytes, uint8_t currByte);
+bool receive_baudval(uint32_t *baud, uint8_t *countBytes, uint8_t currByte);

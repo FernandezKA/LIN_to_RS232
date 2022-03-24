@@ -106,7 +106,7 @@ void USART1_IRQHandler(void)
 // At now unused, will be used for indicate
 void TIMER0_UP_IRQHandler(void)
 {
-	TIMER_INTF(TIMER0)&=~TIMER_INTF_UPIF;
+	TIMER_INTF(TIMER0) &= ~TIMER_INTF_UPIF;
 	GPIO_OCTL(GPIOC) ^= (1 << 13);
 }
 /*******************************************************************************/

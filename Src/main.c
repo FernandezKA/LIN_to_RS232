@@ -38,8 +38,7 @@ usbd_core_handle_struct usb_device_dev =
 		.class_init = cdc_acm_init,
 		.class_deinit = cdc_acm_deinit,
 		.class_req_handler = cdc_acm_req_handler,
-		.class_data_handler = cdc_acm_data_handler
-	};
+		.class_data_handler = cdc_acm_data_handler};
 
 /*******************************************************************************/
 static inline void SysInit(void);
@@ -61,7 +60,7 @@ int main()
 	nvic_priority_group_set(NVIC_PRIGROUP_PRE1_SUB3);
 	nvic_irq_enable(USBD_LP_CAN0_RX0_IRQn, 1, 0);
 #endif
-	nvic_irq_enable(USART1_IRQn, 1, 1); // For LIN UART IRQ
+	nvic_irq_enable(USART1_IRQn, 1, 1);	   // For LIN UART IRQ
 	nvic_irq_enable(TIMER0_UP_IRQn, 2, 2); // For timming definition
 
 	for (;;)
@@ -79,6 +78,7 @@ int main()
 			{
 				if (0 != receive_length)
 				{
+					// cdc_acm_data_send(&usb_device_dev, receive_length);
 					for (uint8_t i = 0; i < receive_length; ++i)
 					{
 						Push(&RS232_RX, usb_data_buffer[i]);
