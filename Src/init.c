@@ -51,14 +51,9 @@ void USART1_Init(void)
 // This timer used for led indicating
 void TIM0_Init(void)
 {
-	RCU_APB2EN |= RCU_APB2EN_TIMER0EN;
-	timer_deinit(TIMER0);
-	timer_parameter_struct tim0;
-	tim0.prescaler = 71; // 0.01 mS for each step
-	tim0.alignedmode = TIMER_COUNTER_EDGE;
-	tim0.counterdirection = TIMER_COUNTER_UP;
-	tim0.period = 0x100; // About 0.81 sec per UIF IRQ
-	timer_init(TIMER0, &tim0);
-	timer_interrupt_enable(TIMER0, TIMER_INT_UP); // Interrrupt at overflow
-	timer_enable(TIMER0);
+	RCU_APB2EN|=RCU_APB2EN_TIMER0EN;
+	TIMER_CTL0(TIMER0)|=TIMER_CTL0_CEN;
+	TIMER_PSC(TIMER0) = 71999;
+	TIMER_CAR(TIMER0) = 9999;
+	TIMER_DMAINTEN(TIMER0)|= TIMER_DMAINTEN_UPIE;
 }
