@@ -26,3 +26,11 @@ RTE/Device/GD32F103C8/system_gd32f10x.c
 *.hex
 Objects/ExtDll.iex
 EventRecorderStub.scvd
+Objects/init.crf
+Objects/fifo.crf
+Objects/init.crf
+Objects/interrupts.crf
+Objects/lin.crf
+Objects/main.crf
+Objects/prot.crf
+Objects/system_gd32f10x.crf

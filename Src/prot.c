@@ -5,54 +5,6 @@ enum avCommands GetCommand(uint8_t currByte)
     enum avCommands currCommand = none_command;
     switch (currByte)
     {
-//    case 'b':
-//        currCommand = setBaud;
-//        break;
-
-//    case 'B':
-//        currCommand = setBaud;
-//        break;
-
-//    case 'e':
-//        currCommand = setCRC;
-//        break;
-
-//    case 'E':
-//        currCommand = setCRC;
-//        break;
-
-//    case 'c':
-//        currCommand = setFilter;
-//        break;
-
-//    case 'C':
-//        currCommand = setFilter;
-//        break;
-
-//    case 'i':
-//        currCommand = getInfo;
-//        break;
-
-//    case 'I':
-//        currCommand = getInfo;
-//        break;
-
-//    case 's':
-//        currCommand = sendSlave;
-//        break;
-
-//    case 'S':
-//        currCommand = sendSlave;
-//        break;
-
-//    case 'm':
-//        currCommand = sendMaster;
-//        break;
-
-//    case 'M':
-//        currCommand = sendMaster;
-//        break;
-
 			case 0x01:
 				currCommand = getInfo;
 			break;
@@ -109,23 +61,17 @@ uint8_t countSend = 0;
 	#endif
 }
 // This function send to vcp nums
-void print_num(uint32_t num)
+void print_num(uint32_t num, char* msg)
 {
-    usb_data_buffer[0] = ((num & 0xFF000000) >> 24);
-    usb_data_buffer[1] = ((num & 0x00FF0000) >> 16);
-    usb_data_buffer[2] = ((num & 0x0000FF00) >> 8);
-    usb_data_buffer[3] = ((num & 0x000000FF));
-#ifdef USB_VCP
-    if (USBD_CONFIGURED == usb_device_dev.status)
-    {
-        cdc_acm_data_send(&usb_device_dev, 4);
-    }
-#endif
+    msg[0] = ((num & 0xFF000000) >> 24);
+    msg[1] = ((num & 0x00FF0000) >> 16);
+    msg[2] = ((num & 0x0000FF00) >> 8);
+    msg[3] = ((num & 0x000000FF));
 }
 // This function receive baudval
 bool receive_baudval(uint32_t *baud, uint8_t *countBytes, uint8_t currByte)
 {
-    if (countBytes == 0)
+    if (*countBytes == 0)
     {
         *baud = currByte << ((3 - *countBytes) * 8);
         ++(*countBytes);
@@ -139,8 +85,8 @@ bool receive_baudval(uint32_t *baud, uint8_t *countBytes, uint8_t currByte)
     }
     else
     {
-        *countBytes = 0;
         *baud |= currByte << ((3 - *countBytes) * 8);
+        *countBytes = 0;
         return true;
     }
 }

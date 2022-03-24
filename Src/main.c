@@ -48,6 +48,8 @@ static inline void GetBackup(enum CRC_Type *crc, enum Filtering *filt, uint32_t 
 /*******************************************************************************/
 int main()
 {
+	char msgInf[] = "****, Enhanced:*,show:* \n\r";
+	
 	lin_transmit.state = wait_pid;
 	lin_received.state = wait_break;
 	lin_slave_transmit.state = wait_pid;
@@ -58,10 +60,10 @@ int main()
 	nvic_irq_enable(USART0_IRQn, 2, 1); // For UART0_PC
 #else
 	nvic_priority_group_set(NVIC_PRIGROUP_PRE1_SUB3);
-	nvic_irq_enable(USBD_LP_CAN0_RX0_IRQn, 1, 0);
+	nvic_irq_enable(USBD_LP_CAN0_RX0_IRQn, 1, 1);
 #endif
-	nvic_irq_enable(USART1_IRQn, 1, 1);	   // For LIN UART IRQ
-	nvic_irq_enable(TIMER0_UP_IRQn, 2, 2); // For timming definition
+	nvic_irq_enable(USART1_IRQn, 2, 2);	   // For LIN UART IRQ
+	nvic_irq_enable(TIMER0_UP_IRQn, 3, 3); // For timming definition
 
 	for (;;)
 	{
@@ -91,17 +93,13 @@ int main()
 		/*******************************************************************************/
 		// Parse RS232 fifo
 		if (GetSize(&RS232_RX) != 0)		   // Check data from PC
-		{									   // All fields for lin packet recieved
+		{	
 			if (parsedCommand == none_command) // Receive command frame
 			{
 				parsedCommand = GetCommand(Pull(&RS232_RX));
 				if (parsedCommand == none_command)
 				{
 					print("Undefined commmand\n\r");
-				}
-				else
-				{
-					print("Enter argument\n\r");
 				}
 			}
 			else // Receive command argument
@@ -112,78 +110,69 @@ int main()
 				case setBaud:
 					if (!receive_baudval(&BAUDRATE_LIN, &count_baud_bytes, Pull(&RS232_RX)))
 					{
-						__NOP();
+						parsedCommand = setBaud;
 					}
 					else
 					{
 						USART_BAUD(USART_LIN) = BAUDRATE_LIN;
-						print("BAUDRATE is set\n\r");
+						usart_baudrate_set(USART_LIN, BAUDRATE_LIN);
+						print("BAUD set\n\r");
 						GetBackup(&CRC_parse, &Filtering_parse, &BAUDRATE_LIN, infoPage, 1);
 						parsedCommand = none_command;
 					}
-					/* 					BAUDRATE_LIN = Pull(&RS232_RX) * 100;
-										USART_BAUD(USART_LIN) = BAUDRATE_LIN;
-										print("BAUDRATE is set\n\r");
-										GetBackup(&CRC_parse, &Filtering_parse, &BAUDRATE_LIN, infoPage, 1);
-										parsedCommand = none_command; */
 					break;
 					/*******************************************************************************/
 				case setCRC:
 					if (Pull(&RS232_RX) == 0)
 					{
 						CRC_parse = Classic;
-						print("Classic CRC selected\n\r");
+						print("Classic\n\r");
 					}
 					else
 					{
 						CRC_parse = Enhanced;
-						print("Enhanced CRC selected\n\r");
+						print("Enhanced\n\r");
 					}
 					GetBackup(&CRC_parse, &Filtering_parse, &BAUDRATE_LIN, infoPage, 1);
 					parsedCommand = none_command;
 					break;
 					/*******************************************************************************/
 				case setFilter:
-					if (Filtering_parse == Show_invalid)
-					{
-						Filtering_parse = Hide_invalid;
-						print("Packets with invalid CRC will be hide\n\r");
-					}
-					else
-					{
+					if(Pull(&RS232_RX) == 1) {
 						Filtering_parse = Show_invalid;
-						print("Packets with invalid CRC will be show\n\r");
+						print("Show invalid\n\r");
+					}
+					else{
+						Filtering_parse = Hide_invalid;
+						print("Hide invalid\n\r");
 					}
 					GetBackup(&CRC_parse, &Filtering_parse, &BAUDRATE_LIN, infoPage, 1);
 					parsedCommand = none_command;
 					break;
 					/*******************************************************************************/
-				case getInfo:
+				case getInfo: 
 					Pull(&RS232_RX);
 					/*******************************************************************************/
-					print_num(BAUDRATE_LIN);
+					print_num(BAUDRATE_LIN, msgInf);
 					/***************************************************/
 					if (CRC_parse == Classic)
 					{
-						print("Classic CRC calculate\n\r");
+						msgInf[15] = '0';
 					}
 					else
 					{
-						print("Enhanced CRC calculate\n\r");
+						msgInf[15] = '1';
 					}
 					/****************************************************/
 					if (Filtering_parse == Show_invalid)
 					{
-						print("Packets with invalid CRC don't be hide \n\r");
+						msgInf[22] = '1';
 					}
 					else if (Filtering_parse == Hide_invalid)
 					{
-						print("Packets with invalid CRC be hide \n\r");
+						msgInf[22] = '0';
 					}
-					else
-					{
-						print("Mode of filtering packets don't be selected\n\r");
-					}
+					print(msgInf);
 					parsedCommand = none_command;
 					break;
 					/*******************************************************************************/
@@ -247,6 +236,14 @@ int main()
 			// Enable IRQ
 			usart_interrupt_enable(USART0, USART_INT_TBE);
 		}
+#else 
+		 if (0 != GetSize(&RS232_TX)){
+				uint8_t size = GetSize(&RS232_TX);
+			 for(uint8_t i  = 0; i < size; ++i){
+				 usb_data_buffer[i] = Pull(&RS232_TX);
+			 }
+			 cdc_acm_data_send(&usb_device_dev, size);
+		 }
 #endif
 		/*******************************************************************************/
 		/*******************************************************************************/
