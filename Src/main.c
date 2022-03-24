@@ -38,7 +38,8 @@ usbd_core_handle_struct usb_device_dev =
 		.class_init = cdc_acm_init,
 		.class_deinit = cdc_acm_deinit,
 		.class_req_handler = cdc_acm_req_handler,
-		.class_data_handler = cdc_acm_data_handler};
+		.class_data_handler = cdc_acm_data_handler
+	};
 
 /*******************************************************************************/
 static inline void SysInit(void);
@@ -61,7 +62,7 @@ int main()
 	nvic_irq_enable(USBD_LP_CAN0_RX0_IRQn, 1, 0);
 #endif
 	nvic_irq_enable(USART1_IRQn, 1, 1); // For LIN UART IRQ
-	// nvic_irq_enable(TIMER0_UP_IRQn, 2, 2); // For timming definition
+	nvic_irq_enable(TIMER0_UP_IRQn, 2, 2); // For timming definition
 
 	for (;;)
 	{
@@ -236,14 +237,17 @@ int main()
 				}
 			}
 		}
-		/*******************************************************************************/
-		/*******************************************************************************/
-		/*******************************************************************************/
-		/* 		if (GetSize(&RS232_TX) != 0)
-				{
-					// Enable IRQ
-					usart_interrupt_enable(USART0, USART_INT_TBE);
-				} */
+/*******************************************************************************/
+/*******************************************************************************/
+/*******************************************************************************/
+// This part of code i use for data transmit at IRQ TXE, IRQ disable in IRQ handler
+#ifndef USB_VCP
+		if (GetSize(&RS232_TX) != 0)
+		{
+			// Enable IRQ
+			usart_interrupt_enable(USART0, USART_INT_TBE);
+		}
+#endif
 		/*******************************************************************************/
 		/*******************************************************************************/
 		/*******************************************************************************/
