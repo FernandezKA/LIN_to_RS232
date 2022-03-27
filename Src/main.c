@@ -197,12 +197,14 @@ int main()
 								LinDataFrameSend(&lin_slave_transmit);
 								LinClear(&lin_slave_transmit);
 								Slave_parse = undef;
+								print("Send slave packet\n\r");
 								parsedCommand = none_command;
 							}
 							else
 							{
 								lin_slave_transmit.state = completed;
 								parsedCommand = none_command;
+								print("Wait PID compare\n\r");
 								Slave_parse = undef;
 							}
 						}
