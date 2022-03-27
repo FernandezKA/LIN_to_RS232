@@ -1,33 +1,37 @@
-LIN_to_RS232 ver. 1.0 2022-02-21
+LIN_to_RS232 ver. 1.1 2022-03-27
 
-Aviable baudrate value for lin: 9600, 19200
-RS232 baudrate: 115200
+Default LIN BAUD: 9600U
 
 PinOut:
 
-USART0 (USART_PC)
-	PA9 - TX
-	PA10 - RX
 USART1 (USART_LIN)
 	PA2 - TX
 	PA3 - RX
 
 Доступные команды конфигурации:
-1) 'b' 96 - set baud 9600
-2) 'b' 192 - set baud 19200
-3) 'e' 0 - classic CRC 
-4) 'e' 1 - enhanced CRC
-5) 'c' 0 - disable show invalid CRC
-6) 'c' 1 - enable show invalid CRC
-7) 'i' 0 - get current info
+1. 0x01 - get info 
+2. 0x02 - set BAUD
+3. 0x03 - set CRC mode
+4. 0x04 - set filter
+5. 0x05 - send slave packet
+6. 0x06 - send master packet
 
-Доступные режимы отправки пакетов:
-1) s 0 PID + DATA - отправка frame slave без ожидания совпадения PID (не соответствует протоколу!)
-2) s 1 PID + DATA - отправка frame slave с ожиданием совпадения PID (приходящие пакеты пробрасываются в RS232)
-3) m PID + DATA - отправка master packet 
+Описание запросов команд: 
+1. get Info - передается с аргументом 0x00, отвечает в виде:
+BAUD(HEX), Enhanced:*, show:*
+где * может принимать значения 1 - включено, 0 - выключено
+2. Set BAUD - передается с 4 байтами аргумента BAUDRATE, начиная с MSB. После приема и конфигурации выдает сообщение 
+BAUD set 
+3. set CRC mode - принимает аргумент 0x00 - classic CRC, 0x01 - enhanced CRC. После конфигурации выдает подтвержадающее сообщение 
+(Classic | Enhanced).
+4. set filter - принимается с аргументом: 0x00 - hide invalid, 0x01 - show invalid. После конфигурации выдает подтверждающее сообщение. 
+5. set slave packet 
+Принимает следующие аргументы: 0x05 + MODE + PID + DATA
+MODE - режим отправки пакета 
+0x00 - отправка после приема пакета
+0x01 - отправка только после совпадения значений PID на линии
+6. send master: принимает следующие аргументы
+0x06 + PID + DATA. После отправки выдает подтверждающее сообщение. 
 
-Все команды не зависят от регистра, после конфигурации сохраняются на последнюю страницу main flash (0x0801FC00) в порядке 
+Все команды после конфигурации сохраняются на последнюю страницу main flash (0x0801FC00) в порядке 
 CRC + filt + baud по 32 бита на каждую переменную. 
-
-При приеме, в случае установки 'c' 0 пакеты с некорректным CRC просто не выводятся. В случае, если установлен режим 'c' 1, то в случае приема
-некорректного пакета, он будет выведен в виде 0x00 PID DATA CRC
