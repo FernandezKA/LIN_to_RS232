@@ -44,6 +44,7 @@ usbd_core_handle_struct usb_device_dev =
 /*******************************************************************************/
 static inline void SysInit(void);
 static inline void usbd_polling(void);
+static inline void nvic_enable(void);
 static inline void GetBackup(enum CRC_Type *crc, enum Filtering *filt, uint32_t *baud, uint32_t *mute, volatile uint32_t *pInfo, bool direction);
 /*******************************************************************************/
 /*******************************************************************************/
@@ -56,15 +57,7 @@ int main()
 	lin_slave_transmit.state = wait_pid;
 	SysInit();
 	GetBackup(&CRC_parse, &Filtering_parse, &BAUDRATE_LIN, &MUTE_MODE, infoPage, 0);
-#ifndef USB_VCP
-	print("LIN adapter ver. 1.0 2022-02-21\n\r");
-	nvic_irq_enable(USART0_IRQn, 2, 1); // For UART0_PC
-#else
-	nvic_priority_group_set(NVIC_PRIGROUP_PRE1_SUB3);
-	nvic_irq_enable(USBD_LP_CAN0_RX0_IRQn, 1, 1);
-#endif
-	nvic_irq_enable(USART1_IRQn, 2, 2);	   // For LIN UART IRQ
-	nvic_irq_enable(TIMER0_UP_IRQn, 3, 3); // For timming definition
+	nvic_enable();
 
 	for (;;)
 	{
@@ -107,12 +100,12 @@ int main()
 					if (Pull(&RS232_RX) == 0)
 					{
 						CRC_parse = Classic;
-						print("Classic\n\r");
+						print("Classic CRC\n\r");
 					}
 					else
 					{
 						CRC_parse = Enhanced;
-						print("Enhanced\n\r");
+						print("Enhanced CRC\n\r");
 					}
 					GetBackup(&CRC_parse, &Filtering_parse, &BAUDRATE_LIN, &MUTE_MODE, infoPage, 1);
 					parsedCommand = none_command;
@@ -122,18 +115,19 @@ int main()
 					if (Pull(&RS232_RX) == 1)
 					{
 						Filtering_parse = Show_invalid;
-						print("Show invalid\n\r");
+						print("Show invalid packets\n\r");
 					}
 					else
 					{
 						Filtering_parse = Hide_invalid;
-						print("Hide invalid\n\r");
+						print("Hide invalid packets\n\r");
 					}
 					GetBackup(&CRC_parse, &Filtering_parse, &BAUDRATE_LIN, &MUTE_MODE, infoPage, 1);
 					parsedCommand = none_command;
 					break;
 					/*******************************************************************************/
 				case getInfo:
+					//Get current configuration of device
 					if (0 == Pull(&RS232_RX))
 					{
 						/*******************************************************************************/
@@ -160,7 +154,7 @@ int main()
 						{
 							info[5] = 0x00;
 						}
-
+						/*****************************************************/
 						if (MUTE_MODE == 0)
 						{
 							info[6] = 0xFF;
@@ -173,10 +167,12 @@ int main()
 						info[8] = 0x0D;
 						send_array(info, sizeof(info));
 					}
+					//Get info about version of software
 					else
 					{
 						print("LIN to USB VCP, ver. 1.0 2022-03-30\n\r");
 					}
+					
 					parsedCommand = none_command;
 					break;
 					/*******************************************************************************/
@@ -195,7 +191,10 @@ int main()
 					GetBackup(&CRC_parse, &Filtering_parse, &BAUDRATE_LIN, &MUTE_MODE, infoPage, 1);
 					parsedCommand = none_command;
 					break;
+					
+					
 				case sendSlave:
+					//Get type of slave packet
 					if (Slave_parse == undef)
 					{
 						if (Pull(&RS232_RX) == 0x01)
@@ -207,31 +206,34 @@ int main()
 							Slave_parse = right_now;
 						}
 					}
+					//Get parse input packet from VCP
 					else
 					{
 						if (GetLinPacket(Pull(&RS232_RX), &lin_slave_transmit))
 						{
+							//Packet, when send after receive packet from PC
 							if (Slave_parse == right_now)
 							{
 								LinDataFrameSend(&lin_slave_transmit);
 								Slave_parse = undef;
+								parsedCommand = none_command;
 								if (MUTE_MODE == 0xFFFFFFFF)
 								{
 									lin_repeat_slave(&lin_slave_transmit);
 								}
 								LinClear(&lin_slave_transmit);
 							}
+							//Packet, when will be send after compare PID value in the bus
+							
+							
+							/*BUG HERE!!!*/
 							else
 							{
+								parsedCommand = none_command;
 								lin_slave_transmit.state = completed;
-								if (MUTE_MODE == 0xFFFFFFFF)
-								{
-									print("Wait PID compare\n\r");
-								}
 								Slave_parse = undef;
 							}
-							Clear(&RS232_RX);
-							parsedCommand = none_command;
+							/*END PART OF BUG'S CODE*/
 						}
 					}
 					break;
@@ -278,7 +280,7 @@ int main()
 		}
 #endif
 		/*******************************************************************************/
-		/*******************************************************************************/
+		/*At this part of code we repat packets from LIN bus to the USBD VCP (LIN -> FIFO -> usb_data_buff)*/
 		/*******************************************************************************/
 		if (lin_received.state == completed)
 		{ // Packet from LIN bus recognized, need to send to VCP
@@ -377,4 +379,16 @@ static inline void usbd_polling(void){
 				}
 			}
 		}
+}
+
+static inline void nvic_enable(void){
+	 #ifndef USB_VCP
+	print("LIN adapter ver. 1.0 2022-02-21\n\r");
+	nvic_irq_enable(USART0_IRQn, 2, 1); // For UART0_PC
+#else
+	nvic_priority_group_set(NVIC_PRIGROUP_PRE1_SUB3);
+	nvic_irq_enable(USBD_LP_CAN0_RX0_IRQn, 1, 1);
+#endif
+	nvic_irq_enable(USART1_IRQn, 2, 2);	   // For LIN UART IRQ
+	nvic_irq_enable(TIMER0_UP_IRQn, 3, 3); // For timming definition
 }
