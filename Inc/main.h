@@ -34,7 +34,7 @@ extern uint32_t BAUDRATE_LIN;
 
 extern uint8_t usb_data_buffer[CDC_ACM_DATA_PACKET_SIZE];
 
-extern volatile uint32_t *infoPage;
+extern volatile uint32_t* infoPage;
 
 enum CRC_Type
 {

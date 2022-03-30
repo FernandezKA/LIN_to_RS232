@@ -21,7 +21,7 @@ enum CRC_Type CRC_parse;
 enum Filtering Filtering_parse = Show_invalid;
 enum Slave_type Slave_parse = undef;
 
-volatile uint32_t *infoPage = (uint32_t *)0x0801FC00;
+volatile uint32_t *infoPage = (uint32_t *) 0x08007C00;
 
 /*******************************************************************************/
 /*******************************************************************************/
@@ -150,7 +150,7 @@ int main()
 					break;
 					/*******************************************************************************/
 				case getInfo: 
-					Pull(&RS232_RX);
+					if(0 == Pull(&RS232_RX)){
 					/*******************************************************************************/
 					static uint8_t info[8];
 					info[0] = ((BAUDRATE_LIN & 0xFF000000) >> 24);
@@ -164,7 +164,7 @@ int main()
 					}
 					else
 					{
-						info[4] = 0x01;
+						info[4] = 0xFF;
 					}
 					/****************************************************/
 					if (Filtering_parse == Show_invalid)
@@ -178,6 +178,10 @@ int main()
 					info[6] = 0x0A;
 					info[7] = 0x0D; 
 					send_array(info, sizeof(info));
+					}
+					else{
+						 print("LIN to USB VCP, ver. 1.0 2022-03-30\n\r");
+					}
 					parsedCommand = none_command;
 					break;
 					/*******************************************************************************/
@@ -202,7 +206,7 @@ int main()
 								LinDataFrameSend(&lin_slave_transmit);
 								LinClear(&lin_slave_transmit);
 								Slave_parse = undef;
-								print("Send slave packet\n\r");
+								print("Sended\n\r");
 								parsedCommand = none_command;
 							}
 							else
@@ -214,16 +218,17 @@ int main()
 							}
 						}
 					}
+					parsedCommand = none_command;
 					break;
 					/*******************************************************************************/
 				case sendMaster:
+					Pull(&RS232_RX);
 					if (GetLinPacket(Pull(&RS232_RX), &lin_transmit))
 					{
 						print("Packet received from RS232\n\r");
 						LinSend(&lin_transmit);
 						LinClear(&lin_transmit);
 						parsedCommand = none_command;
-						// TODO: Add lin send
 					}
 					break;
 					/*******************************************************************************/
