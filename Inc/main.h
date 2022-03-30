@@ -31,6 +31,7 @@ extern struct fifo RS232_RX;
 extern struct fifo RS232_TX;
 extern uint32_t SysCounter;
 extern uint32_t BAUDRATE_LIN;
+extern uint32_t MUTE_MODE;
 
 extern uint8_t usb_data_buffer[CDC_ACM_DATA_PACKET_SIZE];
 

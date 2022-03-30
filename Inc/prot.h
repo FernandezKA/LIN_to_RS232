@@ -8,6 +8,7 @@ enum avCommands
     setCRC,
     setFilter,
     getInfo,
+		muteMode,
     sendSlave,
     sendMaster,
     none_command

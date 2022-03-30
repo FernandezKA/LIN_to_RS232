@@ -10,6 +10,7 @@ struct fifo LIN_TX;
 struct fifo RS232_RX;
 struct fifo RS232_TX;
 uint32_t BAUDRATE_LIN = 9600UL;
+uint32_t MUTE_MODE = 0x00;
 uint8_t count_baud_bytes = 0;
 bool waitLinSlave = FALSE;
 enum avCommands parsedCommand = none_command;
@@ -42,7 +43,7 @@ usbd_core_handle_struct usb_device_dev =
 
 /*******************************************************************************/
 static inline void SysInit(void);
-static inline void GetBackup(enum CRC_Type *crc, enum Filtering *filt, uint32_t *baud, volatile uint32_t *pInfo, bool direction);
+static inline void GetBackup(enum CRC_Type *crc, enum Filtering *filt, uint32_t *baud, uint32_t *mute, volatile uint32_t *pInfo, bool direction);
 /*******************************************************************************/
 /*******************************************************************************/
 /*******************************************************************************/
@@ -53,7 +54,7 @@ int main()
 	lin_received.state = wait_break;
 	lin_slave_transmit.state = wait_pid;
 	SysInit();
-	GetBackup(&CRC_parse, &Filtering_parse, &BAUDRATE_LIN, infoPage, 0);
+	GetBackup(&CRC_parse, &Filtering_parse, &BAUDRATE_LIN, &MUTE_MODE, infoPage, 0);
 #ifndef USB_VCP
 	print("LIN adapter ver. 1.0 2022-02-21\n\r");
 	nvic_irq_enable(USART0_IRQn, 2, 1); // For UART0_PC
@@ -99,6 +100,7 @@ int main()
 				if (parsedCommand == none_command)
 				{
 					print("Undefined commmand\n\r");
+					Clear(&RS232_RX);
 				}
 			}
 			else // Receive command argument
@@ -116,7 +118,7 @@ int main()
 						USART_BAUD(USART_LIN) = BAUDRATE_LIN;
 						usart_baudrate_set(USART_LIN, BAUDRATE_LIN);
 						print("BAUD set\n\r");
-						GetBackup(&CRC_parse, &Filtering_parse, &BAUDRATE_LIN, infoPage, 1);
+						GetBackup(&CRC_parse, &Filtering_parse, &BAUDRATE_LIN, &MUTE_MODE, infoPage, 1);
 						parsedCommand = none_command;
 					}
 					break;
@@ -132,7 +134,7 @@ int main()
 						CRC_parse = Enhanced;
 						print("Enhanced\n\r");
 					}
-					GetBackup(&CRC_parse, &Filtering_parse, &BAUDRATE_LIN, infoPage, 1);
+					GetBackup(&CRC_parse, &Filtering_parse, &BAUDRATE_LIN, &MUTE_MODE, infoPage, 1);
 					parsedCommand = none_command;
 					break;
 					/*******************************************************************************/
@@ -145,14 +147,14 @@ int main()
 						Filtering_parse = Hide_invalid;
 						print("Hide invalid\n\r");
 					}
-					GetBackup(&CRC_parse, &Filtering_parse, &BAUDRATE_LIN, infoPage, 1);
+					GetBackup(&CRC_parse, &Filtering_parse, &BAUDRATE_LIN, &MUTE_MODE, infoPage, 1);
 					parsedCommand = none_command;
 					break;
 					/*******************************************************************************/
 				case getInfo: 
 					if(0 == Pull(&RS232_RX)){
 					/*******************************************************************************/
-					static uint8_t info[8];
+					static uint8_t info[9];
 					info[0] = ((BAUDRATE_LIN & 0xFF000000) >> 24);
 					info[1] = ((BAUDRATE_LIN & 0x00FF0000) >> 16);
 					info[2] = ((BAUDRATE_LIN & 0x0000FF00) >> 8);
@@ -175,8 +177,15 @@ int main()
 					{
 						info[5] = 0x00;
 					}
-					info[6] = 0x0A;
-					info[7] = 0x0D; 
+					
+					if (MUTE_MODE == 0){
+						 info[6] = 0xFF;
+					}
+					else{
+						 info[6] = 0x00;
+					}
+					info[7] = 0x0A;
+					info[8] = 0x0D; 
 					send_array(info, sizeof(info));
 					}
 					else{
@@ -185,6 +194,19 @@ int main()
 					parsedCommand = none_command;
 					break;
 					/*******************************************************************************/
+					
+				case muteMode:
+					if(Pull(&RS232_RX) == 0){
+						 print("Mute mode off\n\r");
+						 MUTE_MODE = 0xFFFFFFFF;
+					}
+					else{
+						 print("Mute mode on\n\r");
+						 MUTE_MODE = 0;
+					}
+					GetBackup(&CRC_parse, &Filtering_parse, &BAUDRATE_LIN, &MUTE_MODE, infoPage, 1);
+					parsedCommand = none_command;
+				break;
 				case sendSlave:
 					if (Slave_parse == undef)
 					{
@@ -206,26 +228,31 @@ int main()
 								LinDataFrameSend(&lin_slave_transmit);
 								LinClear(&lin_slave_transmit);
 								Slave_parse = undef;
-								print("Sended\n\r");
+								if(MUTE_MODE == 0xFFFFFFFF){
+									print("Sended\n\r");
+								}
 								parsedCommand = none_command;
 							}
 							else
 							{
 								lin_slave_transmit.state = completed;
 								parsedCommand = none_command;
-								print("Wait PID compare\n\r");
+								if(MUTE_MODE == 0xFFFFFFFF){
+									print("Wait PID compare\n\r");
+								}
 								Slave_parse = undef;
 							}
 						}
 					}
-					parsedCommand = none_command;
+					//parsedCommand = none_command;
 					break;
 					/*******************************************************************************/
 				case sendMaster:
-					Pull(&RS232_RX);
 					if (GetLinPacket(Pull(&RS232_RX), &lin_transmit))
 					{
-						print("Packet received from RS232\n\r");
+						if(MUTE_MODE == 0xFFFFFFFF){
+							print("Packet received from RS232\n\r");
+						}
 						LinSend(&lin_transmit);
 						LinClear(&lin_transmit);
 						parsedCommand = none_command;
@@ -313,7 +340,7 @@ static inline void SysInit(void)
 
 // This function for backup|read settings from flash memory
 // Direction: 0 - read, 1 - write
-static inline void GetBackup(enum CRC_Type *crc, enum Filtering *filt, uint32_t *baud, volatile uint32_t *pInfo, bool direction)
+static inline void GetBackup(enum CRC_Type *crc, enum Filtering *filt, uint32_t *baud, uint32_t *mute, volatile uint32_t *pInfo, bool direction)
 {
 	if (direction)
 	{ // Write info
@@ -322,6 +349,7 @@ static inline void GetBackup(enum CRC_Type *crc, enum Filtering *filt, uint32_t 
 		fmc_word_program((uint32_t)pInfo, *crc);
 		fmc_word_program((uint32_t)pInfo + sizeof(uint32_t), *filt);
 		fmc_word_program((uint32_t)pInfo + 2 * sizeof(uint32_t), *baud);
+		fmc_word_program((uint32_t)pInfo + 3*sizeof(uint32_t), *mute);
 		fmc_lock();
 	}
 	else
@@ -329,5 +357,6 @@ static inline void GetBackup(enum CRC_Type *crc, enum Filtering *filt, uint32_t 
 		*crc = (enum CRC_Type)pInfo[0];
 		*filt = (enum Filtering)pInfo[1];
 		*baud = (uint32_t)pInfo[2];
+		*mute = (uint32_t)pInfo[3];
 	}
 }

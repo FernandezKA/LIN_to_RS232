@@ -22,10 +22,14 @@ enum avCommands GetCommand(uint8_t currByte)
 			break;
 			
 			case 0x05:
-				currCommand = sendSlave;
+				currCommand = muteMode;
 			break;
 			
 			case 0x06:
+				currCommand = sendSlave;
+			break;
+			
+			case 0x07:
 				currCommand = sendMaster;
 			break;
     }
