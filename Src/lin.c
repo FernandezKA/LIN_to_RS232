@@ -117,7 +117,7 @@ static inline void SendLIN(uint8_t data)
 	}
 	usart_data_transmit(USART_LIN, data);
 }
-
+// This function send data frame of lin packet on bus
 void LinDataFrameSend(lin *packet_slave)
 {
 	for (uint8_t i = 0; i < packet_slave->size; ++i)
@@ -125,4 +125,27 @@ void LinDataFrameSend(lin *packet_slave)
 		SendLIN(packet_slave->data[i]);
 	}
 	SendLIN(packet_slave->crc);
+}
+// This function repeat lin packet into USB VCP
+void lin_repeat_slave(lin *packet)
+{
+	for (uint8_t i = 0; i < packet->size; ++i)
+	{
+		usb_data_buffer[i] = packet->data[i];
+	}
+	usb_data_buffer[packet->size] = 0x0A;
+	usb_data_buffer[packet->size + 1] = 0x0D;
+	cdc_acm_data_send(&usb_device_dev, packet->size + 0x02U);
+}
+//This function repeat lin packet into USB VCP
+void lin_repeat_master(lin *packet)
+{
+	usb_data_buffer[0] = packet->PID;
+	for (uint8_t i = 1; i < packet->size + 1; ++i)
+	{
+		usb_data_buffer[i] = packet->data[i - 1];
+	}
+	usb_data_buffer[packet->size + 1] = 0x0A;
+	usb_data_buffer[packet->size + 2] = 0x0D;
+	cdc_acm_data_send(&usb_device_dev, packet->size + 0x03U);
 }

@@ -22,7 +22,7 @@ enum CRC_Type CRC_parse;
 enum Filtering Filtering_parse = Show_invalid;
 enum Slave_type Slave_parse = undef;
 
-volatile uint32_t *infoPage = (uint32_t *) 0x08007C00;
+volatile uint32_t *infoPage = (uint32_t *)0x08007C00;
 
 /*******************************************************************************/
 /*******************************************************************************/
@@ -43,13 +43,14 @@ usbd_core_handle_struct usb_device_dev =
 
 /*******************************************************************************/
 static inline void SysInit(void);
+static inline void usbd_polling(void);
 static inline void GetBackup(enum CRC_Type *crc, enum Filtering *filt, uint32_t *baud, uint32_t *mute, volatile uint32_t *pInfo, bool direction);
 /*******************************************************************************/
 /*******************************************************************************/
 /*******************************************************************************/
 int main()
 {
-	
+
 	lin_transmit.state = wait_pid;
 	lin_received.state = wait_break;
 	lin_slave_transmit.state = wait_pid;
@@ -67,33 +68,12 @@ int main()
 
 	for (;;)
 	{
-		// This part of code parse inout data buff
 		/*******************************************************************************/
-		// USBD chech buffer
-		if (USBD_CONFIGURED == usb_device_dev.status)
-		{
-			if (1 == packet_receive)
-			{
-				cdc_acm_data_receive(&usb_device_dev);
-			}
-			else
-			{
-				if (0 != receive_length)
-				{
-					// cdc_acm_data_send(&usb_device_dev, receive_length);
-					for (uint8_t i = 0; i < receive_length; ++i)
-					{
-						Push(&RS232_RX, usb_data_buffer[i]);
-					}
-					receive_length = 0;
-				}
-			}
-		}
-		/*******************************************************************************/
+		usbd_polling();
 		/*******************************************************************************/
 		// Parse RS232 fifo
-		if (GetSize(&RS232_RX) != 0)		   // Check data from PC
-		{	
+		if (GetSize(&RS232_RX) != 0) // Check data from PC
+		{
 			if (parsedCommand == none_command) // Receive command frame
 			{
 				parsedCommand = GetCommand(Pull(&RS232_RX));
@@ -139,11 +119,13 @@ int main()
 					break;
 					/*******************************************************************************/
 				case setFilter:
-					if(Pull(&RS232_RX) == 1) {
+					if (Pull(&RS232_RX) == 1)
+					{
 						Filtering_parse = Show_invalid;
 						print("Show invalid\n\r");
 					}
-					else{
+					else
+					{
 						Filtering_parse = Hide_invalid;
 						print("Hide invalid\n\r");
 					}
@@ -151,62 +133,68 @@ int main()
 					parsedCommand = none_command;
 					break;
 					/*******************************************************************************/
-				case getInfo: 
-					if(0 == Pull(&RS232_RX)){
-					/*******************************************************************************/
-					static uint8_t info[9];
-					info[0] = ((BAUDRATE_LIN & 0xFF000000) >> 24);
-					info[1] = ((BAUDRATE_LIN & 0x00FF0000) >> 16);
-					info[2] = ((BAUDRATE_LIN & 0x0000FF00) >> 8);
-					info[3] = ((BAUDRATE_LIN & 0x000000FF));				 
-					/***************************************************/
-					if (CRC_parse == Classic)
+				case getInfo:
+					if (0 == Pull(&RS232_RX))
 					{
-						info[4] = 0x00;
+						/*******************************************************************************/
+						static uint8_t info[9];
+						info[0] = ((BAUDRATE_LIN & 0xFF000000) >> 24);
+						info[1] = ((BAUDRATE_LIN & 0x00FF0000) >> 16);
+						info[2] = ((BAUDRATE_LIN & 0x0000FF00) >> 8);
+						info[3] = ((BAUDRATE_LIN & 0x000000FF));
+						/***************************************************/
+						if (CRC_parse == Classic)
+						{
+							info[4] = 0x00;
+						}
+						else
+						{
+							info[4] = 0xFF;
+						}
+						/****************************************************/
+						if (Filtering_parse == Show_invalid)
+						{
+							info[5] = 0xFF;
+						}
+						else if (Filtering_parse == Hide_invalid)
+						{
+							info[5] = 0x00;
+						}
+
+						if (MUTE_MODE == 0)
+						{
+							info[6] = 0xFF;
+						}
+						else
+						{
+							info[6] = 0x00;
+						}
+						info[7] = 0x0A;
+						info[8] = 0x0D;
+						send_array(info, sizeof(info));
 					}
 					else
 					{
-						info[4] = 0xFF;
-					}
-					/****************************************************/
-					if (Filtering_parse == Show_invalid)
-					{
-						info[5] = 0xFF;
-					}
-					else if (Filtering_parse == Hide_invalid)
-					{
-						info[5] = 0x00;
-					}
-					
-					if (MUTE_MODE == 0){
-						 info[6] = 0xFF;
-					}
-					else{
-						 info[6] = 0x00;
-					}
-					info[7] = 0x0A;
-					info[8] = 0x0D; 
-					send_array(info, sizeof(info));
-					}
-					else{
-						 print("LIN to USB VCP, ver. 1.0 2022-03-30\n\r");
+						print("LIN to USB VCP, ver. 1.0 2022-03-30\n\r");
 					}
 					parsedCommand = none_command;
 					break;
 					/*******************************************************************************/
-					
+
 				case muteMode:
-					if(Pull(&RS232_RX) == 0){
-						 print("Mute mode off\n\r");
-						 MUTE_MODE = 0xFFFFFFFF;
+					if (Pull(&RS232_RX) == 0)
+					{
+						print("Mute mode off\n\r");
+						MUTE_MODE = 0xFFFFFFFF;
 					}
-					else{
-						 print("Mute mode on\n\r");
-						 MUTE_MODE = 0;
+					else
+					{
+						print("Mute mode on\n\r");
+						MUTE_MODE = 0;
 					}
 					GetBackup(&CRC_parse, &Filtering_parse, &BAUDRATE_LIN, &MUTE_MODE, infoPage, 1);
 					parsedCommand = none_command;
-				break;
+					break;
 				case sendSlave:
 					if (Slave_parse == undef)
 					{
@@ -226,32 +214,34 @@ int main()
 							if (Slave_parse == right_now)
 							{
 								LinDataFrameSend(&lin_slave_transmit);
-								LinClear(&lin_slave_transmit);
 								Slave_parse = undef;
-								if(MUTE_MODE == 0xFFFFFFFF){
-									print("Sended\n\r");
+								if (MUTE_MODE == 0xFFFFFFFF)
+								{
+									lin_repeat_slave(&lin_slave_transmit);
 								}
-								parsedCommand = none_command;
+								LinClear(&lin_slave_transmit);
 							}
 							else
 							{
 								lin_slave_transmit.state = completed;
-								parsedCommand = none_command;
-								if(MUTE_MODE == 0xFFFFFFFF){
+								if (MUTE_MODE == 0xFFFFFFFF)
+								{
 									print("Wait PID compare\n\r");
 								}
 								Slave_parse = undef;
 							}
+							Clear(&RS232_RX);
+							parsedCommand = none_command;
 						}
 					}
-					//parsedCommand = none_command;
 					break;
 					/*******************************************************************************/
 				case sendMaster:
 					if (GetLinPacket(Pull(&RS232_RX), &lin_transmit))
 					{
-						if(MUTE_MODE == 0xFFFFFFFF){
-							print("Packet received from RS232\n\r");
+						if (MUTE_MODE == 0xFFFFFFFF)
+						{
+							lin_repeat_master(&lin_transmit);
 						}
 						LinSend(&lin_transmit);
 						LinClear(&lin_transmit);
@@ -275,22 +265,25 @@ int main()
 			// Enable IRQ
 			usart_interrupt_enable(USART0, USART_INT_TBE);
 		}
-#else 
-		 if (0 != GetSize(&RS232_TX)){
-				uint8_t size = GetSize(&RS232_TX);
-			 for(uint8_t i  = 0; i < size; ++i){
-				 usb_data_buffer[i] = Pull(&RS232_TX);
-			 }
-			 cdc_acm_data_send(&usb_device_dev, size);
-		 }
+#else
+		//Send data from FIFO to usbd data buffer
+		if (0 != GetSize(&RS232_TX))
+		{
+			uint8_t size = GetSize(&RS232_TX);
+			for (uint8_t i = 0; i < size; ++i)
+			{
+				usb_data_buffer[i] = Pull(&RS232_TX);
+			}
+			cdc_acm_data_send(&usb_device_dev, size);
+		}
 #endif
 		/*******************************************************************************/
 		/*******************************************************************************/
 		/*******************************************************************************/
 		if (lin_received.state == completed)
-		{ // Packet from LIN bus recognized, need to send to RS232
+		{ // Packet from LIN bus recognized, need to send to VCP
 			if (lin_received.crc == lin_received.rcrc)
-			{ // CRC is correctly
+			{ // CRC is correctly, only repeat packet
 				Push(&RS232_TX, lin_received.PID);
 				for (uint8_t i = 0; i < lin_received.size; ++i)
 				{
@@ -300,7 +293,7 @@ int main()
 				lin_received.state = wait_break;
 			}
 			else
-			{ // Invalid CRC
+			{ // Invalid CRC, insert 0x00 before packet
 				// Get out 0x00 + PID + Data frame + CRC (valid)
 				if (Filtering_parse == Show_invalid)
 				{
@@ -349,7 +342,7 @@ static inline void GetBackup(enum CRC_Type *crc, enum Filtering *filt, uint32_t 
 		fmc_word_program((uint32_t)pInfo, *crc);
 		fmc_word_program((uint32_t)pInfo + sizeof(uint32_t), *filt);
 		fmc_word_program((uint32_t)pInfo + 2 * sizeof(uint32_t), *baud);
-		fmc_word_program((uint32_t)pInfo + 3*sizeof(uint32_t), *mute);
+		fmc_word_program((uint32_t)pInfo + 3 * sizeof(uint32_t), *mute);
 		fmc_lock();
 	}
 	else
@@ -359,4 +352,29 @@ static inline void GetBackup(enum CRC_Type *crc, enum Filtering *filt, uint32_t 
 		*baud = (uint32_t)pInfo[2];
 		*mute = (uint32_t)pInfo[3];
 	}
+}
+//Check usbd data buffer
+static inline void usbd_polling(void){
+			// This part of code parse inout data buff
+		/*******************************************************************************/
+		// USBD chech buffer
+		if (USBD_CONFIGURED == usb_device_dev.status)
+		{
+			if (1 == packet_receive)
+			{
+				cdc_acm_data_receive(&usb_device_dev);
+			}
+			else
+			{
+				if (0 != receive_length)
+				{
+					// cdc_acm_data_send(&usb_device_dev, receive_length);
+					for (uint8_t i = 0; i < receive_length; ++i)
+					{
+						Push(&RS232_RX, usb_data_buffer[i]);
+					}
+					receive_length = 0;
+				}
+			}
+		}
 }

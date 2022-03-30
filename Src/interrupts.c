@@ -66,6 +66,10 @@ void USART1_IRQHandler(void)
 				if (lin_received.PID == lin_slave_transmit.PID)
 				{
 					// Get send our slave packet
+					if (MUTE_MODE == 0xFFFFFFFF)
+					{
+						lin_repeat_slave(&lin_slave_transmit);
+					}
 					LinDataFrameSend(&lin_slave_transmit);
 				}
 			}
@@ -103,7 +107,7 @@ void USART1_IRQHandler(void)
 /*******************************************************************************/
 /*******************************************************************************/
 /*******************************************************************************/
-// At now unused, will be used for indicate
+// used for indicate
 void TIMER0_UP_IRQHandler(void)
 {
 	TIMER_INTF(TIMER0) &= ~TIMER_INTF_UPIF;

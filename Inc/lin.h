@@ -44,3 +44,7 @@ uint8_t GetLinSize(lin *packet);
 void LinDataFrameSend(lin *packet_slave);
 
 static inline void SendLIN(uint8_t data);
+
+void lin_repeat_slave(lin* packet);
+
+void lin_repeat_master(lin* packet);
