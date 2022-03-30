@@ -60,6 +60,16 @@ uint8_t countSend = 0;
 		}
 	#endif
 }
+
+void send_array(uint8_t* ptr, uint8_t size){
+		for(uint8_t i = 0; i < size; ++i){
+			 usb_data_buffer[i] = ptr[i];
+		}
+		if (USBD_CONFIGURED == usb_device_dev.status)
+		{
+		cdc_acm_data_send(&usb_device_dev, size);
+		}
+}
 // This function send to vcp nums
 void print_num(uint32_t num, char* msg)
 {

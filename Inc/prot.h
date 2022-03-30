@@ -19,6 +19,6 @@ enum avCommands GetCommand(uint8_t currByte);
 
 void print(char *pMsg);
 
-void print_num(uint32_t num, char* msg);
+void send_array(uint8_t* ptr, uint8_t size);
 
 bool receive_baudval(uint32_t *baud, uint8_t *countBytes, uint8_t currByte);

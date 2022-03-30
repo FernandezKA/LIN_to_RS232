@@ -48,7 +48,6 @@ static inline void GetBackup(enum CRC_Type *crc, enum Filtering *filt, uint32_t 
 /*******************************************************************************/
 int main()
 {
-	char msgInf[] = "****, Enhanced:*,show:* \n\r";
 	
 	lin_transmit.state = wait_pid;
 	lin_received.state = wait_break;
@@ -153,26 +152,32 @@ int main()
 				case getInfo: 
 					Pull(&RS232_RX);
 					/*******************************************************************************/
-					print_num(BAUDRATE_LIN, msgInf);
+					static uint8_t info[8];
+					info[0] = ((BAUDRATE_LIN & 0xFF000000) >> 24);
+					info[1] = ((BAUDRATE_LIN & 0x00FF0000) >> 16);
+					info[2] = ((BAUDRATE_LIN & 0x0000FF00) >> 8);
+					info[3] = ((BAUDRATE_LIN & 0x000000FF));				 
 					/***************************************************/
 					if (CRC_parse == Classic)
 					{
-						msgInf[15] = '0';
+						info[4] = 0x00;
 					}
 					else
 					{
-						msgInf[15] = '1';
+						info[4] = 0x01;
 					}
 					/****************************************************/
 					if (Filtering_parse == Show_invalid)
 					{
-						msgInf[22] = '1';
+						info[5] = 0xFF;
 					}
 					else if (Filtering_parse == Hide_invalid)
 					{
-						msgInf[22] = '0';
+						info[5] = 0x00;
 					}
-					print(msgInf);
+					info[6] = 0x0A;
+					info[7] = 0x0D; 
+					send_array(info, sizeof(info));
 					parsedCommand = none_command;
 					break;
 					/*******************************************************************************/
