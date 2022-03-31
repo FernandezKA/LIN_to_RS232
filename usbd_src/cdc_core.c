@@ -246,8 +246,8 @@ void *const usbd_strings[] =
 {
     [USBD_LANGID_STR_IDX] = (uint8_t *)&usbd_language_id_desc,
     [USBD_MFC_STR_IDX] = USBD_STRING_DESC("FernandezKA"),
-    [USBD_PRODUCT_STR_IDX] = USBD_STRING_DESC("Pulse generator"),
-    [USBD_SERIAL_STR_IDX] = USBD_STRING_DESC("Pulse generator v 1.0")
+    [USBD_PRODUCT_STR_IDX] = USBD_STRING_DESC("LIN adapter"),
+    [USBD_SERIAL_STR_IDX] = USBD_STRING_DESC("LIN adapter v. 1.1")
 };
 
 /*!

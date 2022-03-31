@@ -7,26 +7,26 @@
 // This IRQ Handler for USART PC
 void USART0_IRQHandler(void)
 {
-	if (usart_flag_get(USART_RS232, USART_FLAG_RBNE))
-	{
-		usart_flag_clear(USART_RS232, USART_FLAG_RBNE);
-		Push(&RS232_RX, (uint8_t)usart_data_receive(USART_RS232));
-	}
-	else if (usart_flag_get(USART_RS232, USART_FLAG_TBE))
-	{
-		if (GetSize(&RS232_TX) != 0)
-		{
-			usart_data_transmit(USART_RS232, Pull(&RS232_TX));
-		}
-		else
-		{
-			usart_interrupt_disable(USART_RS232, USART_INT_TBE);
-		}
-	}
-	else
-	{
-		USART_STAT(USART_RS232) = 0;
-	}
+//	if (usart_flag_get(USART_RS232, USART_FLAG_RBNE))
+//	{
+//		usart_flag_clear(USART_RS232, USART_FLAG_RBNE);
+//		Push(&RS232_RX, (uint8_t)usart_data_receive(USART_RS232));
+//	}
+//	else if (usart_flag_get(USART_RS232, USART_FLAG_TBE))
+//	{
+//		if (GetSize(&RS232_TX) != 0)
+//		{
+//			usart_data_transmit(USART_RS232, Pull(&RS232_TX));
+//		}
+//		else
+//		{
+//			usart_interrupt_disable(USART_RS232, USART_INT_TBE);
+//		}
+//	}
+//	else
+//	{
+//		USART_STAT(USART_RS232) = 0;
+//	}
 }
 /*******************************************************************************/
 /*******************************************************************************/

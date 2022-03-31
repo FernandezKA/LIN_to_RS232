@@ -13,8 +13,9 @@ USART1 (USART_LIN)
 2. 0x02 - set BAUD
 3. 0x03 - set CRC mode
 4. 0x04 - set filter
-5. 0x05 - send slave packet
-6. 0x06 - send master packet
+5. 0x05 - mute mode
+6. 0x06 - send slave packet
+7. 0x07 - send master packet
 
 Описание запросов команд: 
 1. get Info - передается с аргументом 0x00, отвечает в виде:
@@ -25,13 +26,13 @@ BAUD set
 3. set CRC mode - принимает аргумент 0x00 - classic CRC, 0x01 - enhanced CRC. После конфигурации выдает подтвержадающее сообщение 
 (Classic | Enhanced).
 4. set filter - принимается с аргументом: 0x00 - hide invalid, 0x01 - show invalid. После конфигурации выдает подтверждающее сообщение. 
-5. set slave packet 
+6. set slave packet 
 Принимает следующие аргументы: 0x05 + MODE + PID + DATA, где
 MODE - режим отправки пакета 
 0x00 - отправка после приема пакета
 0x01 - отправка только после совпадения значений PID на линии
-6. send master: принимает следующие аргументы
-0x06 + PID + DATA. После отправки выдает подтверждающее сообщение. 
+7. send master: принимает следующие аргументы
+0x07 + PID + DATA. После отправки выдает подтверждающее сообщение. 
 
 Все команды после конфигурации сохраняются на последнюю страницу main flash (0x0801FC00) в порядке 
 CRC + filt + baud по 32 бита на каждую переменную. 

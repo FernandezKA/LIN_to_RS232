@@ -14,7 +14,7 @@ enum avCommands
     none_command
 };
 
-extern enum avCommands parsedCommand;
+//extern volatile enum avCommands parsedCommand;
 
 enum avCommands GetCommand(uint8_t currByte);
 

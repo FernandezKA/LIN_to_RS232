@@ -137,7 +137,7 @@ void lin_repeat_slave(lin *packet)
 	usb_data_buffer[packet->size + 1] = 0x0D;
 	cdc_acm_data_send(&usb_device_dev, packet->size + 0x02U);
 }
-//This function repeat lin packet into USB VCP
+// This function repeat lin packet into USB VCP
 void lin_repeat_master(lin *packet)
 {
 	usb_data_buffer[0] = packet->PID;
