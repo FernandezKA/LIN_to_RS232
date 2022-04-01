@@ -61,6 +61,7 @@ void USART1_IRQHandler(void)
 		case wait_pid:
 			lin_received.PID = (uint8_t)usart_data_receive(USART_LIN);
 			lin_received.size = GetLinSize(&lin_received);
+			lin_received.state = wait_data;
 			if (lin_slave_transmit_compare.state == completed && Slave_parse == PID_compare)
 			{
 				if (lin_received.PID == lin_slave_transmit_compare.PID)

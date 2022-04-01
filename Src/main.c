@@ -308,6 +308,7 @@ int main()
 				}
 				Push(&RS232_TX, lin_received.crc);
 				lin_received.state = wait_break;
+				LinClear(&lin_received);
 			}
 			else
 			{ // Invalid CRC, insert 0x00 before packet
@@ -322,11 +323,13 @@ int main()
 					}
 					Push(&RS232_TX, lin_received.crc);
 					lin_received.state = wait_break;
+					LinClear(&lin_received);
 				}
 				else
 				{
 					// Remove invalid packet
 					lin_received.state = wait_break;
+					LinClear(&lin_received);
 				}
 			}
 		}

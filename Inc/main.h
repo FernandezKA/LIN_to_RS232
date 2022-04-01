@@ -33,6 +33,8 @@ extern uint32_t SysCounter;
 extern uint32_t BAUDRATE_LIN;
 extern uint32_t MUTE_MODE;
 
+extern uint8_t packet_sent, packet_receive;
+extern uint32_t receive_length;
 extern uint8_t usb_data_buffer[CDC_ACM_DATA_PACKET_SIZE];
 
 extern volatile uint32_t* infoPage;
