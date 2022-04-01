@@ -29,6 +29,7 @@ typedef struct LIN lin;
 extern lin lin_received;
 extern lin lin_transmit;
 extern lin lin_slave_transmit;
+extern lin lin_slave_transmit_compare;
 extern bool waitLinSlave;
 
 void LinClear(lin *packet);

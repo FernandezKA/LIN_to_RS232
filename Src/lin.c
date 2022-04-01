@@ -21,7 +21,7 @@ bool GetLinPacket(uint8_t data, lin *packet)
 		break;
 
 	case completed:
-
+		status = true;
 		break;
 
 	case wait_pid:
@@ -74,11 +74,11 @@ void LinSend(lin *packet)
 uint8_t GetLinSize(lin *packet)
 {
 	uint8_t pid = (packet->PID) & 0x3FU;
-	if (pid < 0x1F)
+	if (pid < 0x1FU)
 	{
 		return 2;
 	}
-	else if (pid > 0x1f && pid < 0x2F)
+	else if (pid > 0x1fU && pid < 0x2FU)
 	{
 		return 4;
 	}
@@ -106,7 +106,7 @@ uint8_t GetCRC(lin *packet, enum CRC_Type *crc_type)
 		sum += packet->data[i];
 	}
 
-	return sum ^ 0xFF;
+	return sum ^ 0xFFU;
 }
 
 static inline void SendLIN(uint8_t data)

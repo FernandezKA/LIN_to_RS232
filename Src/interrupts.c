@@ -61,19 +61,20 @@ void USART1_IRQHandler(void)
 		case wait_pid:
 			lin_received.PID = (uint8_t)usart_data_receive(USART_LIN);
 			lin_received.size = GetLinSize(&lin_received);
-			if (lin_slave_transmit.state == completed && Slave_parse == PID_compare)
+			if (lin_slave_transmit_compare.state == completed && Slave_parse == PID_compare)
 			{
-				if (lin_received.PID == lin_slave_transmit.PID)
+				if (lin_received.PID == lin_slave_transmit_compare.PID)
 				{
 					// Get send our slave packet
 					if (MUTE_MODE == 0xFFFFFFFF)
 					{
-						lin_repeat_slave(&lin_slave_transmit);
+						lin_repeat_slave(&lin_slave_transmit_compare);
 					}
-					LinDataFrameSend(&lin_slave_transmit);
+					LinDataFrameSend(&lin_slave_transmit_compare);
+					LinClear(&lin_slave_transmit_compare);
+					lin_slave_transmit_compare.state = wait_pid;
 				}
 			}
-			lin_received.state = wait_data;
 			break;
 
 		case wait_data:

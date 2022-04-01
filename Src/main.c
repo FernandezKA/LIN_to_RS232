@@ -15,8 +15,9 @@ uint8_t count_baud_bytes = 0U;
 bool waitLinSlave = FALSE;
 static volatile enum avCommands parsedCommand = none_command;
 lin lin_received;
-lin lin_transmit;
-lin lin_slave_transmit;
+static lin lin_transmit;
+static lin lin_slave_transmit;
+lin lin_slave_transmit_compare;
 uint32_t SysCounter = 0;
 enum CRC_Type CRC_parse;
 enum Filtering Filtering_parse = Show_invalid;
@@ -42,8 +43,8 @@ usbd_core_handle_struct usb_device_dev =
 static inline void SysInit(void);
 static inline void usbd_polling(void);
 static inline void nvic_enable(void);
-static inline void GetBackup(enum CRC_Type *crc, enum Filtering *filt, uint32_t *baud, uint32_t *mute,\
- volatile uint32_t *pInfo, bool direction);
+static inline void GetBackup(enum CRC_Type *crc, enum Filtering *filt, uint32_t *baud, uint32_t *mute,
+							 volatile uint32_t *pInfo, bool direction);
 /*******************************************************************************/
 /*******************************************************************************/
 /*******************************************************************************/
@@ -53,6 +54,7 @@ int main()
 	lin_transmit.state = wait_pid;
 	lin_received.state = wait_break;
 	lin_slave_transmit.state = wait_pid;
+	lin_slave_transmit_compare.state = wait_pid;
 	SysInit();
 	GetBackup(&CRC_parse, &Filtering_parse, &BAUDRATE_LIN, &MUTE_MODE, infoPage, 0);
 	nvic_enable();
@@ -60,7 +62,7 @@ int main()
 	for (;;)
 	{
 		/*******************************************************************************/
-		usbd_polling();//Check usbd for new data packets
+		usbd_polling(); // Check usbd for new data packets
 		/*******************************************************************************/
 		// Parse RS232 fifo
 		if (GetSize(&RS232_RX) != 0) // Check data from PC
@@ -72,6 +74,7 @@ int main()
 				{
 					print("Undefined commmand\n\r");
 					Clear(&RS232_RX);
+					break;
 				}
 			}
 			else // Receive command argument
@@ -198,23 +201,27 @@ int main()
 					// Get type of slave packet
 					if (Slave_parse == undef)
 					{
-					LinClear(&lin_slave_transmit);
 						if (Pull(&RS232_RX) == 0x01U)
 						{
+							if(lin_slave_transmit_compare.state == completed){
+								 LinClear(&lin_slave_transmit_compare);
+								 lin_slave_transmit_compare.state = wait_pid;
+								 print("Existing package has been removed\n\r");
+							}
 							Slave_parse = PID_compare;
 						}
 						else
 						{
 							Slave_parse = right_now;
 						}
+						break;
 					}
 					// Get parse input packet from VCP
 					else
 					{
-						if (GetLinPacket(Pull(&RS232_RX), &lin_slave_transmit))
+						if (Slave_parse == right_now)
 						{
-							// Packet, when send after receive packet from PC
-							if (Slave_parse == right_now)
+							if (GetLinPacket(Pull(&RS232_RX), &lin_slave_transmit))
 							{
 								LinDataFrameSend(&lin_slave_transmit);
 								Slave_parse = undef;
@@ -223,24 +230,25 @@ int main()
 									lin_repeat_slave(&lin_slave_transmit);
 								}
 								parsedCommand = none_command;
+								LinClear(&lin_slave_transmit);
+								break;
 							}
-							// Packet, when will be send after compare PID value in the bus
-
-							/*BUG HERE!!!*/
-							else if(Slave_parse == PID_compare)
+						}
+						else if (Slave_parse == PID_compare)
+						{
+							if (GetLinPacket(Pull(&RS232_RX), &lin_slave_transmit_compare))
 							{
-								lin_slave_transmit.state = completed;
+								lin_slave_transmit_compare.state = completed;
 								Slave_parse = undef;
-								for(uint8_t i = 0; i < 0xFF; ++i){__NOP();}
 								parsedCommand = none_command;
+								break;
 							}
-
-							else{
-								//It's mistake case
-								Clear(&RS232_RX);
-								parsedCommand = none_command;
-							}
-							/*END PART OF BUG'S CODE*/
+						}
+						else
+						{
+							Clear(&RS232_RX);
+							Slave_parse = undef;
+							break;
 						}
 					}
 					break;
