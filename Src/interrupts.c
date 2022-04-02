@@ -1,36 +1,6 @@
 #include "interrupts.h"
 #include "lin.h"
 #include "main.h"
-/*******************************************************************************/
-/*******************************************************************************/
-/*******************************************************************************/
-// This IRQ Handler for USART PC
-void USART0_IRQHandler(void)
-{
-//	if (usart_flag_get(USART_RS232, USART_FLAG_RBNE))
-//	{
-//		usart_flag_clear(USART_RS232, USART_FLAG_RBNE);
-//		Push(&RS232_RX, (uint8_t)usart_data_receive(USART_RS232));
-//	}
-//	else if (usart_flag_get(USART_RS232, USART_FLAG_TBE))
-//	{
-//		if (GetSize(&RS232_TX) != 0)
-//		{
-//			usart_data_transmit(USART_RS232, Pull(&RS232_TX));
-//		}
-//		else
-//		{
-//			usart_interrupt_disable(USART_RS232, USART_INT_TBE);
-//		}
-//	}
-//	else
-//	{
-//		USART_STAT(USART_RS232) = 0;
-//	}
-}
-/*******************************************************************************/
-/*******************************************************************************/
-/*******************************************************************************/
 // This irq handler for lin bus
 void USART1_IRQHandler(void)
 {
@@ -41,6 +11,11 @@ void USART1_IRQHandler(void)
 	}
 	else if (usart_flag_get(USART_LIN, USART_FLAG_RBNE))
 	{ // data fields detection
+		if((USART_STAT(USART_LIN) & USART_STAT_ORERR) == USART_STAT_ORERR){
+			 lin_received.state = wait_break;
+			usart_data_receive(USART_LIN);
+		}
+		else{
 		switch (lin_received.state)
 		{
 		case wait_break:
@@ -60,26 +35,29 @@ void USART1_IRQHandler(void)
 
 		case wait_pid:
 			lin_received.PID = (uint8_t)usart_data_receive(USART_LIN);
-			lin_received.size = GetLinSize(&lin_received);
+			lin_received.size = lin_size_get(&lin_received);
 			lin_received.state = wait_data;
+			//for send data slave packet at comare pid
 			if (lin_slave_transmit_compare.state == completed && Slave_parse == PID_compare)
 			{
 				if (lin_received.PID == lin_slave_transmit_compare.PID)
 				{
 					// Get send our slave packet
-					if (MUTE_MODE == 0xFFFFFFFF)
+					if (MUTE_MODE == 0xFFFFFFFFU)
 					{
 						lin_repeat_slave(&lin_slave_transmit_compare);
 					}
-					LinDataFrameSend(&lin_slave_transmit_compare);
-					LinClear(&lin_slave_transmit_compare);
+					lin_send_data_frame(&lin_slave_transmit_compare);
+					lin_struct_clear(&lin_slave_transmit_compare);
+					lin_struct_clear(&lin_received);
 					lin_slave_transmit_compare.state = wait_pid;
+					lin_received.state = wait_break;
 				}
 			}
 			break;
 
 		case wait_data:
-			if (lin_received.countData < lin_received.size - 1)
+			if (lin_received.countData < lin_received.size - 1U)
 			{
 				lin_received.data[lin_received.countData++] = (uint8_t)usart_data_receive(USART_LIN);
 			}
@@ -92,7 +70,7 @@ void USART1_IRQHandler(void)
 
 		case wait_crc:
 			lin_received.rcrc = (uint8_t)usart_data_receive(USART_LIN);
-			lin_received.crc = GetCRC(&lin_received, &CRC_parse);
+			lin_received.crc = lin_crc_get(&lin_received, &CRC_parse);
 			lin_received.state = completed;
 			break;
 
@@ -102,22 +80,15 @@ void USART1_IRQHandler(void)
 			break;
 		}
 	}
-	else
-	{ // Undefined behavioral
 	}
 }
-/*******************************************************************************/
-/*******************************************************************************/
-/*******************************************************************************/
-// used for indicate
+// used for indicate on PC13
 void TIMER0_UP_IRQHandler(void)
 {
 	TIMER_INTF(TIMER0) &= ~TIMER_INTF_UPIF;
-	GPIO_OCTL(GPIOC) ^= (1 << 13);
+	GPIO_OCTL(GPIOC) ^= (1U << 13);
 }
-/*******************************************************************************/
-/*******************************************************************************/
-/*******************************************************************************/
+//IRQ handler for usbd cdc
 void USBD_LP_CAN0_RX0_IRQHandler(void)
 {
 	usbd_isr();

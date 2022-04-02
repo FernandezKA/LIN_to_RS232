@@ -32,19 +32,19 @@ extern lin lin_slave_transmit;
 extern lin lin_slave_transmit_compare;
 extern bool waitLinSlave;
 
-void LinClear(lin *packet);
+void lin_struct_clear(lin *packet);
 
-bool GetLinPacket(uint8_t data, lin *packet);
+bool lin_receive_packet(uint8_t data, lin *packet);
 
-void LinSend(lin *packet);
+void lin_send_master(lin *packet);
 
-uint8_t GetCRC(lin *packet, enum CRC_Type *crc_type);
+uint8_t lin_crc_get(lin *packet, enum CRC_Type *crc_type);
 
-uint8_t GetLinSize(lin *packet);
+uint8_t lin_size_get(lin *packet);
 
-void LinDataFrameSend(lin *packet_slave);
+void lin_send_data_frame(lin *packet_slave);
 
-static inline void SendLIN(uint8_t data);
+static inline void _send_one_byte_lin(uint8_t data);
 
 void lin_repeat_slave(lin* packet);
 

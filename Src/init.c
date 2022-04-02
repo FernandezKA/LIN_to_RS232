@@ -1,7 +1,8 @@
 #include "main.h"
 #include <gd32f10x_usart.h>
+//Init CLK at 72 MHz of clocked, with PLL
 void CLK_Init(void) {}
-
+//Only set gpio - work modes
 void GPIO_Init(void)
 {
 	RCU_APB2EN |= RCU_APB2EN_PCEN | RCU_APB2EN_PAEN;
@@ -42,7 +43,7 @@ void USART1_Init(void)
 	usart_interrupt_enable(USART1, USART_INT_RBNE);
 	usart_interrupt_enable(USART1, USART_INT_LBD); // Lin break detect
 	usart_lin_mode_enable(USART1);
-	usart_interrupt_enable(USART1, USART_INT_LBD);
+	USART_CTL1(USART1)|=USART_CTL1_LBLEN;
 	gpio_afio_deinit();
 	gpio_init(GPIOA, GPIO_MODE_AF_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_2);
 	gpio_init(GPIOA, GPIO_MODE_IPD, GPIO_OSPEED_50MHZ, GPIO_PIN_3);

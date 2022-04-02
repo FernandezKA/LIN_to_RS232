@@ -43,7 +43,10 @@ usbd_core_handle_struct usb_device_dev =
 static inline void SysInit(void);
 static inline void usbd_polling(void);
 static inline void nvic_enable(void);
-static inline void GetBackup(enum CRC_Type *crc, enum Filtering *filt, uint32_t *baud, uint32_t *mute,
+static inline void _lin_check_receive(void);
+static inline void _check_tx_fifo(void);
+static inline void _parse_user_data(void);
+static inline void _save_user_settings(enum CRC_Type *crc, enum Filtering *filt, uint32_t *baud, uint32_t *mute,
 							 volatile uint32_t *pInfo, bool direction);
 /*******************************************************************************/
 /*******************************************************************************/
@@ -56,287 +59,17 @@ int main()
 	lin_slave_transmit.state = wait_pid;
 	lin_slave_transmit_compare.state = wait_pid;
 	SysInit();
-	GetBackup(&CRC_parse, &Filtering_parse, &BAUDRATE_LIN, &MUTE_MODE, infoPage, 0);
+	_save_user_settings(&CRC_parse, &Filtering_parse, &BAUDRATE_LIN, &MUTE_MODE, infoPage, 0);
 	nvic_enable();
-
 	for (;;)
 	{
 		/*******************************************************************************/
 		usbd_polling(); // Check usbd for new data packets
-		/*******************************************************************************/
-		// Parse RS232 fifo
-		if (GetSize(&RS232_RX) != 0) // Check data from PC
-		{
-			if (parsedCommand == none_command) // Receive command frame
-			{
-				parsedCommand = GetCommand(Pull(&RS232_RX));
-				if (parsedCommand == none_command)
-				{
-					print("Undefined commmand\n\r");
-					Clear(&RS232_RX);
-					break;
-				}
-			}
-			else // Receive command argument
-			{
-				switch (parsedCommand)
-				{
-					/*******************************************************************************/
-				case setBaud:
-					if (!receive_baudval(&BAUDRATE_LIN, &count_baud_bytes, Pull(&RS232_RX)))
-					{
-						parsedCommand = setBaud;
-					}
-					else
-					{
-						USART_BAUD(USART_LIN) = BAUDRATE_LIN;
-						usart_baudrate_set(USART_LIN, BAUDRATE_LIN);
-						print("BAUD set\n\r");
-						GetBackup(&CRC_parse, &Filtering_parse, &BAUDRATE_LIN, &MUTE_MODE, infoPage, 1);
-						Clear(&RS232_RX);
-						parsedCommand = none_command;
-					}
-					break;
-					/*******************************************************************************/
-				case setCRC:
-					if (Pull(&RS232_RX) == 0)
-					{
-						CRC_parse = Classic;
-						print("Classic CRC\n\r");
-					}
-					else
-					{
-						CRC_parse = Enhanced;
-						print("Enhanced CRC\n\r");
-					}
-					GetBackup(&CRC_parse, &Filtering_parse, &BAUDRATE_LIN, &MUTE_MODE, infoPage, 1);
-					Clear(&RS232_RX);
-					parsedCommand = none_command;
-					break;
-					/*******************************************************************************/
-				case setFilter:
-					if (Pull(&RS232_RX) == 1)
-					{
-						Filtering_parse = Show_invalid;
-						print("Show invalid packets\n\r");
-					}
-					else
-					{
-						Filtering_parse = Hide_invalid;
-						print("Hide invalid packets\n\r");
-					}
-					GetBackup(&CRC_parse, &Filtering_parse, &BAUDRATE_LIN, &MUTE_MODE, infoPage, 1);
-					Clear(&RS232_RX);
-					parsedCommand = none_command;
-					break;
-					/*******************************************************************************/
-				case getInfo:
-					// Get current configuration of device
-					if (0 == Pull(&RS232_RX))
-					{
-						/*******************************************************************************/
-						static uint8_t info[9];
-						info[0] = ((BAUDRATE_LIN & 0xFF000000) >> 24);
-						info[1] = ((BAUDRATE_LIN & 0x00FF0000) >> 16);
-						info[2] = ((BAUDRATE_LIN & 0x0000FF00) >> 8);
-						info[3] = ((BAUDRATE_LIN & 0x000000FF));
-						/***************************************************/
-						if (CRC_parse == Classic)
-						{
-							info[4] = 0x00;
-						}
-						else
-						{
-							info[4] = 0xFF;
-						}
-						/****************************************************/
-						if (Filtering_parse == Show_invalid)
-						{
-							info[5] = 0xFF;
-						}
-						else if (Filtering_parse == Hide_invalid)
-						{
-							info[5] = 0x00;
-						}
-						/*****************************************************/
-						if (MUTE_MODE == 0)
-						{
-							info[6] = 0xFF;
-						}
-						else
-						{
-							info[6] = 0x00;
-						}
-						info[7] = 0x0A;
-						info[8] = 0x0D;
-						send_array(info, sizeof(info));
-					}
-					// Get info about version of software
-					else
-					{
-						print("LIN to USB VCP, ver. 1.0 2022-03-30\n\r");
-					}
-					Clear(&RS232_RX);
-					parsedCommand = none_command;
-					break;
-					/*******************************************************************************/
-
-				case muteMode:
-					if (Pull(&RS232_RX) == 0)
-					{
-						print("Mute mode off\n\r");
-						MUTE_MODE = 0xFFFFFFFF;
-					}
-					else
-					{
-						print("Mute mode on\n\r");
-						MUTE_MODE = 0;
-					}
-					GetBackup(&CRC_parse, &Filtering_parse, &BAUDRATE_LIN, &MUTE_MODE, infoPage, 1);
-					Clear(&RS232_RX);
-					parsedCommand = none_command;
-					break;
-
-				case sendSlave:
-					// Get type of slave packet
-					if (Slave_parse == undef)
-					{
-						if (Pull(&RS232_RX) == 0x01U)
-						{
-							if(lin_slave_transmit_compare.state == completed){
-								 LinClear(&lin_slave_transmit_compare);
-								 lin_slave_transmit_compare.state = wait_pid;
-								 print("Existing package has been removed\n\r");
-							}
-							Slave_parse = PID_compare;
-						}
-						else
-						{
-							Slave_parse = right_now;
-						}
-						break;
-					}
-					// Get parse input packet from VCP
-					else
-					{
-						if (Slave_parse == right_now)
-						{
-							if (GetLinPacket(Pull(&RS232_RX), &lin_slave_transmit))
-							{
-								LinDataFrameSend(&lin_slave_transmit);
-								Slave_parse = undef;
-								if (MUTE_MODE == 0xFFFFFFFFU)
-								{
-									lin_repeat_slave(&lin_slave_transmit);
-								}
-								parsedCommand = none_command;
-								LinClear(&lin_slave_transmit);
-								break;
-							}
-						}
-						else if (Slave_parse == PID_compare)
-						{
-							if (GetLinPacket(Pull(&RS232_RX), &lin_slave_transmit_compare))
-							{
-								lin_slave_transmit_compare.state = completed;
-								Slave_parse = undef;
-								parsedCommand = none_command;
-								break;
-							}
-						}
-						else
-						{
-							Clear(&RS232_RX);
-							Slave_parse = undef;
-							break;
-						}
-					}
-					break;
-					/*******************************************************************************/
-				case sendMaster:
-					if (GetLinPacket(Pull(&RS232_RX), &lin_transmit))
-					{
-						if (MUTE_MODE == 0xFFFFFFFF)
-						{
-							lin_repeat_master(&lin_transmit);
-						}
-						LinSend(&lin_transmit);
-						LinClear(&lin_transmit);
-						parsedCommand = none_command;
-					}
-					break;
-					/*******************************************************************************/
-				case none_command:
-					print("Can't be recognized. Try again\n\r");
-					break;
-				}
-			}
-		}
-/*******************************************************************************/
-/*******************************************************************************/
-/*******************************************************************************/
-// This part of code i use for data transmit at IRQ TXE, IRQ disable in IRQ handler
-#ifndef USB_VCP
-		if (GetSize(&RS232_TX) != 0)
-		{
-			// Enable IRQ
-			usart_interrupt_enable(USART0, USART_INT_TBE);
-		}
-#else
-		// Send data from FIFO to usbd data buffer
-		if (0 != GetSize(&RS232_TX))
-		{
-			uint8_t size = GetSize(&RS232_TX);
-			for (uint8_t i = 0; i < size; ++i)
-			{
-				usb_data_buffer[i] = Pull(&RS232_TX);
-			}
-			cdc_acm_data_send(&usb_device_dev, size);
-		}
-#endif
-		/*******************************************************************************/
-		/*At this part of code we repat packets from LIN bus to the USBD VCP (LIN -> FIFO -> usb_data_buff)*/
-		/*******************************************************************************/
-		if (lin_received.state == completed)
-		{ // Packet from LIN bus recognized, need to send to VCP
-			if (lin_received.crc == lin_received.rcrc)
-			{ // CRC is correctly, only repeat packet
-				Push(&RS232_TX, lin_received.PID);
-				for (uint8_t i = 0; i < lin_received.size; ++i)
-				{
-					Push(&RS232_TX, lin_received.data[i]);
-				}
-				Push(&RS232_TX, lin_received.crc);
-				lin_received.state = wait_break;
-				LinClear(&lin_received);
-			}
-			else
-			{ // Invalid CRC, insert 0x00 before packet
-				// Get out 0x00 + PID + Data frame + CRC (valid)
-				if (Filtering_parse == Show_invalid)
-				{
-					Push(&RS232_TX, 0x00);
-					Push(&RS232_TX, lin_received.PID);
-					for (uint8_t i = 0; i < lin_received.size; ++i)
-					{
-						Push(&RS232_TX, lin_received.data[i]);
-					}
-					Push(&RS232_TX, lin_received.crc);
-					lin_received.state = wait_break;
-					LinClear(&lin_received);
-				}
-				else
-				{
-					// Remove invalid packet
-					lin_received.state = wait_break;
-					LinClear(&lin_received);
-				}
-			}
-		}
+		_check_tx_fifo();
+		_parse_user_data();
+		_lin_check_receive();
 	}
 }
-/*******************************************************************************/
-/*******************************************************************************/
 /*******************************************************************************/
 static inline void SysInit(void)
 {
@@ -350,10 +83,8 @@ static inline void SysInit(void)
 	USART1_Init();
 	TIM0_Init();
 }
-
-// This function for backup|read settings from flash memory
 // Direction: 0 - read, 1 - write
-static inline void GetBackup(enum CRC_Type *crc, enum Filtering *filt, uint32_t *baud, uint32_t *mute, volatile uint32_t *pInfo, bool direction)
+static inline void _save_user_settings(enum CRC_Type *crc, enum Filtering *filt, uint32_t *baud, uint32_t *mute, volatile uint32_t *pInfo, bool direction)
 {
 	if (direction)
 	{ // Write info
@@ -373,7 +104,6 @@ static inline void GetBackup(enum CRC_Type *crc, enum Filtering *filt, uint32_t 
 		*mute = (uint32_t)pInfo[3];
 	}
 }
-// Check usbd data buffer
 static inline void usbd_polling(void)
 {
 	// This part of code parse inout data buff
@@ -399,7 +129,6 @@ static inline void usbd_polling(void)
 		}
 	}
 }
-
 static inline void nvic_enable(void)
 {
 #ifndef USB_VCP
@@ -411,4 +140,278 @@ static inline void nvic_enable(void)
 #endif
 	nvic_irq_enable(USART1_IRQn, 2, 2);	   // For LIN UART IRQ
 	nvic_irq_enable(TIMER0_UP_IRQn, 3, 3); // For timming definition
+}
+static inline void _lin_check_receive(void)
+{
+	if (lin_received.state == completed)
+	{ // Packet from LIN bus recognized, need to send to VCP
+		if (lin_received.crc == lin_received.rcrc)
+		{ // CRC is correctly, only repeat packet
+			Push(&RS232_TX, lin_received.PID);
+			for (uint8_t i = 0; i < lin_received.size; ++i)
+			{
+				Push(&RS232_TX, lin_received.data[i]);
+			}
+			Push(&RS232_TX, lin_received.crc);
+			Push(&RS232_TX, 0x0A);
+			Push(&RS232_TX, 0x0D);
+			lin_struct_clear(&lin_received);
+			lin_received.state = wait_break;
+		}
+		else
+		{ // Invalid CRC, insert 0x00 before packet
+			// Get out 0x00 + PID + Data frame + CRC (valid)
+			if (Filtering_parse == Show_invalid)
+			{
+				Push(&RS232_TX, 0x00);
+				Push(&RS232_TX, lin_received.PID);
+				for (uint8_t i = 0; i < lin_received.size; ++i)
+				{
+					Push(&RS232_TX, lin_received.data[i]);
+				}
+				Push(&RS232_TX, lin_received.crc);
+				Push(&RS232_TX, 0x0A);
+				Push(&RS232_TX, 0x0D);
+				lin_struct_clear(&lin_received);
+				lin_received.state = wait_break;
+			}
+			else
+			{
+				// Remove invalid packet
+				lin_received.state = wait_break;
+				lin_struct_clear(&lin_received);
+			}
+		}
+	}
+}
+static inline void _check_tx_fifo(void)
+{
+#ifndef USB_VCP
+	if (GetSize(&RS232_TX) != 0)
+	{
+		// Enable IRQ
+		usart_interrupt_enable(USART0, USART_INT_TBE);
+	}
+#else
+	// Send data from FIFO to usbd data buffer
+	if (0 != GetSize(&RS232_TX))
+	{
+		uint8_t size = GetSize(&RS232_TX);
+		for (uint8_t i = 0; i < size; ++i)
+		{
+			usb_data_buffer[i] = Pull(&RS232_TX);
+		}
+		cdc_acm_data_send(&usb_device_dev, size);
+	}
+#endif
+}
+static inline void _parse_user_data(void)
+{
+	if (GetSize(&RS232_RX) != 0) // Check data from PC
+	{
+		if (parsedCommand == none_command) // Receive command frame
+		{
+			parsedCommand = GetCommand(Pull(&RS232_RX));
+			if (parsedCommand == none_command)
+			{
+				print("Undefined commmand\n\r");
+				Clear(&RS232_RX);
+			}
+		}
+		else // Receive command argument
+		{
+			switch (parsedCommand)
+			{
+				/*******************************************************************************/
+			case setBaud:
+				if (!receive_baudval(&BAUDRATE_LIN, &count_baud_bytes, Pull(&RS232_RX)))
+				{
+					parsedCommand = setBaud;
+				}
+				else
+				{
+					USART_BAUD(USART_LIN) = BAUDRATE_LIN;
+					usart_baudrate_set(USART_LIN, BAUDRATE_LIN);
+					print("BAUD set\n\r");
+					_save_user_settings(&CRC_parse, &Filtering_parse, &BAUDRATE_LIN, &MUTE_MODE, infoPage, 1);
+					Clear(&RS232_RX);
+					parsedCommand = none_command;
+				}
+				break;
+				/*******************************************************************************/
+			case setCRC:
+				if (Pull(&RS232_RX) == 0)
+				{
+					CRC_parse = Classic;
+					print("Classic CRC\n\r");
+				}
+				else
+				{
+					CRC_parse = Enhanced;
+					print("Enhanced CRC\n\r");
+				}
+				_save_user_settings(&CRC_parse, &Filtering_parse, &BAUDRATE_LIN, &MUTE_MODE, infoPage, 1);
+				Clear(&RS232_RX);
+				parsedCommand = none_command;
+				break;
+				/*******************************************************************************/
+			case setFilter:
+				if (Pull(&RS232_RX) == 1)
+				{
+					Filtering_parse = Show_invalid;
+					print("Show invalid packets\n\r");
+				}
+				else
+				{
+					Filtering_parse = Hide_invalid;
+					print("Hide invalid packets\n\r");
+				}
+				_save_user_settings(&CRC_parse, &Filtering_parse, &BAUDRATE_LIN, &MUTE_MODE, infoPage, 1);
+				Clear(&RS232_RX);
+				parsedCommand = none_command;
+				break;
+				/*******************************************************************************/
+			case getInfo:
+				// Get current configuration of device
+				if (0 == Pull(&RS232_RX))
+				{
+					/*******************************************************************************/
+					static uint8_t info[9];
+					info[0] = ((BAUDRATE_LIN & 0xFF000000) >> 24);
+					info[1] = ((BAUDRATE_LIN & 0x00FF0000) >> 16);
+					info[2] = ((BAUDRATE_LIN & 0x0000FF00) >> 8);
+					info[3] = ((BAUDRATE_LIN & 0x000000FF));
+					/***************************************************/
+					if (CRC_parse == Classic)
+					{
+						info[4] = 0x00;
+					}
+					else
+					{
+						info[4] = 0xFF;
+					}
+					/****************************************************/
+					if (Filtering_parse == Show_invalid)
+					{
+						info[5] = 0xFF;
+					}
+					else if (Filtering_parse == Hide_invalid)
+					{
+						info[5] = 0x00;
+					}
+					/*****************************************************/
+					if (MUTE_MODE == 0)
+					{
+						info[6] = 0xFF;
+					}
+					else
+					{
+						info[6] = 0x00;
+					}
+					info[7] = 0x0A;
+					info[8] = 0x0D;
+					send_array(info, sizeof(info));
+				}
+				// Get info about version of software
+				else
+				{
+					print("LIN to USB VCP, ver. 1.0 2022-03-30\n\r");
+				}
+				Clear(&RS232_RX);
+				parsedCommand = none_command;
+				break;
+				/*******************************************************************************/
+
+			case muteMode:
+				if (Pull(&RS232_RX) == 0)
+				{
+					print("Mute mode off\n\r");
+					MUTE_MODE = 0xFFFFFFFF;
+				}
+				else
+				{
+					print("Mute mode on\n\r");
+					MUTE_MODE = 0;
+				}
+				_save_user_settings(&CRC_parse, &Filtering_parse, &BAUDRATE_LIN, &MUTE_MODE, infoPage, 1);
+				Clear(&RS232_RX);
+				parsedCommand = none_command;
+				break;
+
+			case sendSlave:
+				// Get type of slave packet
+				if (Slave_parse == undef)
+				{
+					if (Pull(&RS232_RX) == 0x01U)
+					{
+						if (lin_slave_transmit_compare.state == completed)
+						{
+							lin_struct_clear(&lin_slave_transmit_compare);
+							lin_slave_transmit_compare.state = wait_pid;
+							print("Existing package has been removed\n\r");
+						}
+						Slave_parse = PID_compare;
+					}
+					else
+					{
+						Slave_parse = right_now;
+					}
+					break;
+				}
+				// Get parse input packet from VCP
+				else
+				{
+					if (Slave_parse == right_now)
+					{
+						if (lin_receive_packet(Pull(&RS232_RX), &lin_slave_transmit))
+						{
+							lin_send_data_frame(&lin_slave_transmit);
+							Slave_parse = undef;
+							if (MUTE_MODE == 0xFFFFFFFFU)
+							{
+								lin_repeat_slave(&lin_slave_transmit);
+							}
+							parsedCommand = none_command;
+							lin_struct_clear(&lin_slave_transmit);
+							break;
+						}
+					}
+					else if (Slave_parse == PID_compare)
+					{
+						if (lin_receive_packet(Pull(&RS232_RX), &lin_slave_transmit_compare))
+						{
+							lin_slave_transmit_compare.state = completed;
+							Slave_parse = undef;
+							parsedCommand = none_command;
+							break;
+						}
+					}
+					else
+					{
+						Clear(&RS232_RX);
+						Slave_parse = undef;
+						break;
+					}
+				}
+				break;
+				/*******************************************************************************/
+			case sendMaster:
+				if (lin_receive_packet(Pull(&RS232_RX), &lin_transmit))
+				{
+					if (MUTE_MODE == 0xFFFFFFFF)
+					{
+						lin_repeat_master(&lin_transmit);
+					}
+					lin_send_master(&lin_transmit);
+					lin_struct_clear(&lin_transmit);
+					parsedCommand = none_command;
+				}
+				break;
+				/*******************************************************************************/
+			case none_command:
+				print("Can't be recognized. Try again\n\r");
+				break;
+			}
+		}
+	}
 }

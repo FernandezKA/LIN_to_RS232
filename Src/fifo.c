@@ -1,11 +1,11 @@
 #include "fifo.h"
-
+//This function get init states for correctly work fifo buffer
 void FifoInit(FIFO *buf)
 {
 	buf->Head = 0x00;
 	buf->Tail = 0x00;
 }
-
+//This function add data to the fifo - buf
 void Push(FIFO *buf, BufDataType data)
 {
 	if (GetSize(buf) == BufSize)
@@ -18,7 +18,7 @@ void Push(FIFO *buf, BufDataType data)
 		buf->Data[buf->Head++] = data;
 	}
 }
-
+//This function return first element from fifo - buf
 BufDataType Pull(FIFO *buf)
 {
 	BufDataType currByte = buf->Data[buf->Tail++];
@@ -28,7 +28,7 @@ BufDataType Pull(FIFO *buf)
 	}
 	return currByte;
 }
-
+//This function return size of ring - bufer
 uint16_t GetSize(FIFO *buf)
 {
 	if (buf->Head > buf->Tail)
@@ -40,7 +40,7 @@ uint16_t GetSize(FIFO *buf)
 		return 0;
 	}
 }
-
+//This function set head and tail pointer at zero states
 void Clear(FIFO *buf)
 {
 	buf->Head = 0x00;

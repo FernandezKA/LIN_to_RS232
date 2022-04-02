@@ -1,5 +1,6 @@
 #include "prot.h"
 #include "main.h"
+//This function parse received data to enumerate of commnd 
 enum avCommands GetCommand(uint8_t currByte)
 {
 	enum avCommands currCommand = none_command;
@@ -35,7 +36,7 @@ enum avCommands GetCommand(uint8_t currByte)
 	}
 	return currCommand;
 }
-
+//This function send text to USBD VCP
 void print(char *pMsg)
 {
 	uint8_t countSend = 0;
@@ -74,7 +75,7 @@ void print(char *pMsg)
 	}
 #endif
 }
-
+//This function send array of data to USBD VCP
 void send_array(uint8_t *ptr, uint8_t size)
 {
 	for (uint8_t i = 0; i < size; ++i)
@@ -90,7 +91,7 @@ void send_array(uint8_t *ptr, uint8_t size)
 		cdc_acm_data_send(&usb_device_dev, size);
 	}
 }
-// This function send to vcp nums
+// This function converts uint32_t to 4 * uint8_t for data transmission
 void print_num(uint32_t num, char *msg)
 {
 	msg[0] = ((num & 0xFF000000) >> 24);
@@ -98,7 +99,7 @@ void print_num(uint32_t num, char *msg)
 	msg[2] = ((num & 0x0000FF00) >> 8);
 	msg[3] = ((num & 0x000000FF));
 }
-// This function receive baudval
+// This function receive baudval, formed 32 - bits field on 4 * 8 bits data
 bool receive_baudval(uint32_t *baud, uint8_t *countBytes, uint8_t currByte)
 {
 	if (*countBytes == 0)
