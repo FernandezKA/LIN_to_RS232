@@ -25,7 +25,13 @@ bool lin_receive_packet(uint8_t data, lin *packet)
 		break;
 
 	case wait_pid:
-		packet->PID = data;
+		packet->PID = (data&0x3FU);
+		static uint8_t P0, P1;
+		P0 = (packet->PID & (1<<0))^((packet->PID & (1<<1))>>1)^((packet->PID & (1<<2))>>2)^((packet->PID & (1<<4))>>4);
+		P1 = (!(((packet->PID & (1<<1))>>1))^((packet->PID & (1<<3))>>3)^((packet->PID & (1<<4))>>4)^((packet->PID & (1<<5))>>5));
+		P0 = P0 << 6;
+		P1 = P1 << 7;
+		packet->PID |= (P0 | P1);
 		packet->size = lin_size_get(packet);
 		packet->state = wait_data;
 		break;
