@@ -13,7 +13,8 @@ void USART1_IRQHandler(void)
 	{ // data fields detection
 		if((USART_STAT(USART_LIN) & USART_STAT_ORERR) == USART_STAT_ORERR){
 			 lin_received.state = wait_break;
-			usart_data_receive(USART_LIN);
+			 usart_data_receive(USART_LIN);
+			 return;
 		}
 		else{
 		switch (lin_received.state)
@@ -81,6 +82,8 @@ void USART1_IRQHandler(void)
 		}
 	}
 	}
+	USART_STAT(USART_LIN) = 0x00U;
+	return;
 }
 // used for indicate on PC13
 void TIMER0_UP_IRQHandler(void)
