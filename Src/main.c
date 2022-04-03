@@ -17,6 +17,7 @@ static volatile enum avCommands parsedCommand = none_command;
 lin lin_received;
 static lin lin_transmit;
 static lin lin_slave_transmit;
+static uint8_t _empty_cmd = 0xFFU;
 lin lin_slave_transmit_compare;
 uint32_t SysCounter = 0;
 enum CRC_Type CRC_parse;
@@ -396,6 +397,10 @@ static inline void _parse_user_data(void)
 				break;
 				/*******************************************************************************/
 			case sendMaster:
+				if(_empty_cmd == 0xFFU){
+					 _empty_cmd = Pull(&RS232_RX);
+				}
+				else{
 				if (lin_receive_packet(Pull(&RS232_RX), &lin_transmit))
 				{
 					if (MUTE_MODE == 0xFFFFFFFF)
@@ -405,11 +410,14 @@ static inline void _parse_user_data(void)
 					lin_send_master(&lin_transmit);
 					lin_struct_clear(&lin_transmit);
 					parsedCommand = none_command;
+					_empty_cmd = 0xFFU;
 				}
+			}
 				break;
 				/*******************************************************************************/
 			case none_command:
 				print("Can't be recognized. Try again\n\r");
+			
 				break;
 			}
 		}
