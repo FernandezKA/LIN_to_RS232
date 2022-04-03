@@ -7,6 +7,10 @@ PinOut:
 USART1 (USART_LIN)
 	PA2 - TX
 	PA3 - RX
+	PC13 - led activity 
+	
+	D- - PA11                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
+	D+ - PA12
 
 Доступные команды конфигурации:
 1. 0x01 - get info 
@@ -18,22 +22,25 @@ USART1 (USART_LIN)
 7. 0x07 - send master packet
 
 Описание запросов команд: 
-1. get Info - передается с аргументом 0x00, отвечает в виде:
-BAUD(HEX), Enhanced:*, show:*
-где * может принимать значения 1 - включено, 0 - выключено
+1. get Info + mode
+	when 0x00 => 
+		return BAUD[31:0] + CRC + Filtering + mute_mode + 0x0A + 0x0D
+	when 0x01 => 
+		return string with info about device. Example: "LIN to USB VCP, ver. 1.0 2022-03-30". 
+		Value 0xFF is enable, 0x00 - disabled state. 
 2. Set BAUD - передается с 4 байтами аргумента BAUDRATE, начиная с MSB. После приема и конфигурации выдает сообщение 
-BAUD set 
+	BAUD set 
 3. set CRC mode - принимает аргумент 0x00 - classic CRC, 0x01 - enhanced CRC. После конфигурации выдает подтвержадающее сообщение 
-(Classic | Enhanced).
+	(Classic | Enhanced).
 4. set filter - принимается с аргументом: 0x00 - hide invalid, 0x01 - show invalid. После конфигурации выдает подтверждающее сообщение. 
-6. set slave packet 
-Принимает следующие аргументы: 0x05 + MODE + PID + DATA, где
-MODE - режим отправки пакета 
-0x00 - отправка после приема пакета
-0x01 - отправка только после совпадения значений PID на линии
+6. send slave packet 
+	Принимает следующие аргументы: 0x05 + MODE + PID + DATA, где
+	MODE - режим отправки пакета 
+	0x00 - отправка после приема пакета
+	0x01 - отправка только после совпадения значений PID на линии
 7. send master: принимает следующие аргументы
-0x07 + empty_cmd + PID + DATA. После отправки выдает подтверждающее сообщение. 
-empty_cmd может принимать значения  из диапазона [0x00; 0xFF).
+	0x07 + empty_cmd + PID + DATA. После отправки выдает подтверждающее сообщение. 
+	empty_cmd может принимать значения  из диапазона [0x00; 0xFF).
 
-Все команды после конфигурации сохраняются на последнюю страницу main flash (0x0801FC00) в порядке 
-CRC + filt + baud + mute_mode по 32 бита на каждую переменную. 
+Все команды после конфигурации сохраняются на страницу main flash  по адресу 0x08007C00 в порядке 
+CRC + filt + baud + mute_mode выровненными на границу по 32 байта. 

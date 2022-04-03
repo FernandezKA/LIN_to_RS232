@@ -39,7 +39,7 @@ void USART1_IRQHandler(void)
 			lin_received.size = lin_size_get(&lin_received);
 			lin_received.state = wait_data;
 			//for send data slave packet at comare pid
-			if (lin_slave_transmit_compare.state == completed && Slave_parse == PID_compare)
+			if (lin_slave_transmit_compare.state == completed)
 			{
 				if (lin_received.PID == lin_slave_transmit_compare.PID)
 				{
