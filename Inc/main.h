@@ -4,7 +4,7 @@
 #define FALSE false
 
 #include <stdint.h>
-#include <stdbool.h>
+//#include <stdbool.h>
 
 // GD Includes
 #include <gd32f10x.h>
@@ -24,7 +24,7 @@
 
 #define USART_LIN USART1
 #define USART_RS232 USART0
-// User global variables
+// User global variables   
 extern struct fifo LIN_RX;
 extern struct fifo LIN_TX;
 extern struct fifo RS232_RX;

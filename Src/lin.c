@@ -95,16 +95,18 @@ uint8_t lin_size_get(lin *packet)
 }
 
 // This function calculate CRC for lin packet
-uint8_t lin_crc_get(lin *packet, enum CRC_Type *crc_type)
+uint8_t lin_crc_get(lin *packet, enum CRC_Type *pcrc_type)
 {
 	uint8_t sum = 0;
-	if (crc_type == Enhanced)
+	enum CRC_Type _crc = *pcrc_type;
+	if (_crc == Classic)
 	{
-		sum = packet->PID;
+		sum = 0x00U;
+		//sum = (packet->PID);//& 0x3F;
 	}
 	else
 	{
-		sum = 0;
+		sum = (packet->PID);
 	}
 
 	for (uint8_t i = 0; i < packet->size; ++i)

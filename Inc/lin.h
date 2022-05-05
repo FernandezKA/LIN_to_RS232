@@ -38,7 +38,7 @@ bool lin_receive_packet(uint8_t data, lin *packet);
 
 void lin_send_master(lin *packet);
 
-uint8_t lin_crc_get(lin *packet, enum CRC_Type *crc_type);
+uint8_t lin_crc_get(lin *packet, enum CRC_Type *pcrc_type);
 
 uint8_t lin_size_get(lin *packet);
 
